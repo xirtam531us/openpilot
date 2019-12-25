@@ -15,6 +15,7 @@ def main(gctx=None):
 
   while True:
     # try network
+    '''
     ping_failed = subprocess.call(["ping", "-W", "4", "-c", "1", "8.8.8.8"])
     if ping_failed:
       time.sleep(60)
@@ -47,7 +48,7 @@ def main(gctx=None):
       params.put("ReleaseNotes", r + b"\n")
     except:
       params.put("ReleaseNotes", "")
-
+    '''
     t = datetime.datetime.now().isoformat()
     params.put("LastUpdateTime", t.encode('utf8'))
 
