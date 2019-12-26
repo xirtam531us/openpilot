@@ -17,6 +17,8 @@ from selfdrive.loggerd.config import ROOT
 from common.params import Params
 from common.api import Api
 
+from selfdrive.loggerd.upload_ftp import upload_to_ftp
+
 fake_upload = os.getenv("FAKEUPLOAD") is not None
 
 def raise_on_thread(t, exctype):
@@ -185,6 +187,7 @@ class Uploader():
     self.last_exc = None
 
     try:
+      upload_to_ftp(self.dongle_id, key, fn)
       self.do_upload(key, fn)
     except Exception:
       pass
