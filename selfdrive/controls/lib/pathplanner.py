@@ -9,6 +9,8 @@ from selfdrive.config import Conversions as CV
 from common.params import Params
 import cereal.messaging as messaging
 from cereal import log
+from selfdrive.kegman_conf import kegman_conf
+
 
 LaneChangeState = log.PathPlan.LaneChangeState
 LaneChangeDirection = log.PathPlan.LaneChangeDirection
@@ -61,6 +63,23 @@ class PathPlanner():
     self.lane_change_timer = 0.0
     self.lane_change_ll_prob = 1.0
     self.prev_one_blinker = False
+    
+    self.mpc_frame = 0
+    self.sR_delay_counter = 0
+    self.steerRatio_new = 0.0
+    self.sR_time = 1
+    kegman = kegman_conf(CP)
+    if kegman.conf['steerRatio'] == "-1":
+      self.steerRatio = CP.steerRatio
+    else:
+      self.steerRatio = float(kegman.conf['steerRatio'])
+      
+    if kegman.conf['steerRateCost'] == "-1":
+      self.steerRateCost = CP.steerRateCost
+    else:
+      self.steerRateCost = float(kegman.conf['steerRateCost'])
+    self.steerRateCost_prev = self.steerRateCost
+    self.setup_mpc()
 
   def setup_mpc(self):
     self.libmpc = libmpc_py.libmpc
@@ -89,6 +108,24 @@ class PathPlanner():
     self.angle_steers_des_prev = self.angle_steers_des_mpc
     VM.update_params(sm['liveParameters'].stiffnessFactor, sm['liveParameters'].steerRatio)
     curvature_factor = VM.curvature_factor(v_ego)
+    
+    # Get steerRatio and steerRateCost from kegman.json every x seconds
+    self.mpc_frame += 1
+    if self.mpc_frame % 500 == 0:
+      # live tuning through /data/openpilot/tune.py overrides interface.py settings
+      kegman = kegman_conf()
+      if kegman.conf['tuneGernby'] == "1":
+        self.steerRateCost = float(kegman.conf['steerRateCost'])
+        if self.steerRateCost != self.steerRateCost_prev:
+          self.setup_mpc()
+          self.steerRateCost_prev = self.steerRateCost
+          
+        self.sR = [float(kegman.conf['steerRatio']), (float(kegman.conf['steerRatio']) + float(kegman.conf['sR_boost']))]
+        self.sRBP = [float(kegman.conf['sR_BP0']), float(kegman.conf['sR_BP1'])]
+        self.sR_time = int(float(kegman.conf['sR_time'])) * 100
+         
+      self.mpc_frame = 0
+
 
     self.LP.parse_model(sm['model'])
 
