@@ -193,6 +193,10 @@ class Uploader():
 
     try:
       upload_to_ftp(self.dongle_id, key, fn)
+    except Exception:
+      pass
+    
+    try:
       self.do_upload(key, fn)
     except Exception:
       pass
