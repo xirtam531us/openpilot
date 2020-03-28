@@ -205,5 +205,7 @@ class CarState(CarStateBase):
     elif CP.carFingerprint == CAR.V60:
       signals.append(("ACCStatus", "fromFSM0", 0))
 
+      checks.append(('fromFSM0', 100))
+
     
     return CANParser(DBC[CP.carFingerprint]['pt'], signals, checks, 2)
