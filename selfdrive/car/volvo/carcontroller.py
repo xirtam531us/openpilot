@@ -29,7 +29,7 @@ class CarController():
     self.steer_right_ratio_prev = 0
     
     # Diag
-    self.checkDtcs = True # Set false to stop sending diagnostic requests 
+    self.clearDtcs = True # Set false to stop sending diagnostic requests 
     self.timeout = 999
     self.diagRequest = { 
       "byte0": 0x03,
@@ -222,7 +222,7 @@ class CarController():
       can_sends.append(volvocan.create_steering_control(self.packer, self.CP.carFingerprint, lka_angle_request, frame, acc_enabled, steer_direction, unkown))
     
     # Send diagnostic requests
-    if(frame % 100 == 0) and (not self.checkDtcs):
+    if(frame % 100 == 0) and (not self.clearDtcs):
       # Request diagnostic codes, 2 Hz
       can_sends.append(self.packer.make_can_msg("diagFSMReq", 2, self.diagRequest))
       can_sends.append(self.packer.make_can_msg("diagPSCMReq", 0, self.diagRequest))
@@ -241,8 +241,8 @@ class CarController():
       
     # Clear DTCs in FSM on start
     # TODO check for engine running before clearing dtc.
-    if(self.checkDtcs and (frame > 0) and (frame % 500 == 0)):
+    if(self.clearDtcs and (frame > 0) and (frame % 500 == 0)):
       can_sends.append(self.packer.make_can_msg("diagFSMReq", 2, self.clearDTC))
-      self.checkDtcs = False
+      self.clearDtcs = False
     
     return can_sends
