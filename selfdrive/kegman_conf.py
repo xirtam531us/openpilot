@@ -39,8 +39,8 @@ class kegman_conf():
   def read_config(self):
     self.element_updated = False
 
-    if os.path.isfile('/data/kegman.json'):
-      with open('/data/kegman.json', 'r') as f:
+    if os.path.isfile('/data/openpilot/kegman.json'):
+      with open('/data/openpilot/kegman.json', 'r') as f:
         self.config = json.load(f)
 
       if "battPercOff" not in self.config:
