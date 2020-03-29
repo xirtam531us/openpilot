@@ -42,7 +42,7 @@ class CarState(CarStateBase):
       ret.gas = cp.vl["PedalandBrake"]['AccPedal'] / 102.3
     elif self.CP.carFingerprint == CAR.V60:
       ret.gas = cp.vl["AccPedal"]['AccPedal'] / 102.3
-    ret.gasPressed = ret.gas > 0
+    ret.gasPressed = ret.gas > 0.1
     ret.brakePressed = False
     #ret.brakePressed = cp.vl["PedalandBrake"]['BrakePedalActive2'] != 0 # old way.
     #ret.brakePressed = (cp.vl["BrakeMessages"]['BrakeStatus'] == 0) and (cp.vl["BrakeMessages"]['BrakePress0'] != 0) # doesnt false detect during acc braking.
