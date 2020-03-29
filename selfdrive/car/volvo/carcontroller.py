@@ -243,6 +243,8 @@ class CarController():
     # TODO check for engine running before clearing dtc.
     if(self.clearDtcs and (frame > 0) and (frame % 500 == 0)):
       can_sends.append(self.packer.make_can_msg("diagFSMReq", 2, self.clearDTC))
+      can_sends.append(self.packer.make_can_msg("diagPSCMReq", 0, self.clearDTC))
+      can_sends.append(self.packer.make_can_msg("diagCEMReq", 0, self.clearDTC))
       self.clearDtcs = False
     
     return can_sends
