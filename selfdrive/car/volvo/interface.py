@@ -36,18 +36,12 @@ class CarInterface(CarInterfaceBase):
         ret.safetyModel = car.CarParams.SafetyModel.volvoEUCD
       # Set common parameters
       ret.carName = "volvo"
-      #ret.safetyModel = car.CarParams.SafetyModel.volvo
       ret.enableCruise = True # Stock ACC
       ret.openpilotLongitudinalControl = False
       ret.steerControlType = car.CarParams.SteerControlType.angle
       ret.steerLimitAlert = False # Steer torque is strongly rate limit and max value is decently high. Off to avoid false positives
-       
       ret.minSteerSpeed = 30. * CV.KPH_TO_MS
-      #ret.minSteerSpeed = 65. * CV.KPH_TO_MS
-      ret.minEnableSpeed = 30. * CV.KPH_TO_MS
-      #ret.minEnableSpeed = 70. * CV.KPH_TO_MS
- 
-      ret.enableCamera = True # force openpilot to fake the stock camera, since car harness is not supported yet and old style giraffe (with switches)
+      ret.enableCamera = True # force openpilot to fake the stock camera
       
       # Steering settings
       ret.steerRateCost = 0.5
