@@ -50,17 +50,13 @@ class CarInterface(CarInterfaceBase):
       ret.steerMaxBP = [0.] # m/s
       ret.steerMaxV = [1.]
 
-      # Speed adjusted lateral tuning breakpoint
-      #ret.lateralTuning.pid.kpBP = [0., 15 * CV.KPH_TO_MS, 50 * CV.KPH_TO_MS]
-      #ret.lateralTuning.pid.kiBP = [0., 15 * CV.KPH_TO_MS, 50 * CV.KPH_TO_MS]
+      # No PID control used. 
       ret.lateralTuning.pid.kpBP = [0.]
       ret.lateralTuning.pid.kiBP = [0.]
       # Tuning factors
-      ret.lateralTuning.pid.kf = 0.00006
-      #ret.lateralTuning.pid.kpV  = [0.01, 0.01, 0.005]
-      #ret.lateralTuning.pid.kiV = [0.005, 0.005, 0.005]
-      ret.lateralTuning.pid.kpV  = [0.01]
-      ret.lateralTuning.pid.kiV = [0.005]
+      ret.lateralTuning.pid.kf = 0.0
+      ret.lateralTuning.pid.kpV  = [0.0]
+      ret.lateralTuning.pid.kiV = [0.0]
       
       # Technical specifications
       ret.mass = 1610 + STD_CARGO_KG

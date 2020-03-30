@@ -165,7 +165,7 @@ class CarController():
       if acc_enabled and CS.out.vEgo > self.CP.minSteerSpeed:
 
         current_steer_angle = CS.out.steeringAngle
-        lka_angle_request = actuators.steerAngle
+        lka_angle_request = actuators.steerAngle # Desired value from pathplanner
 
         # Calculate direction to steer based on raw requested input signal.
         steer_direction = CCP.STEER_RIGHT if current_steer_angle > lka_angle_request else CCP.STEER_LEFT
