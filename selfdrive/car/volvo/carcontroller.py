@@ -187,16 +187,6 @@ class CarController():
         lka_angle_request = clip(lka_angle_request, max_delta_right, max_delta_left) if self.acc_enabled_prev else lka_angle_request
         lka_angle_request = clip(lka_angle_request, max_right, max_left)
         
-        #lka_angle_request = lka_angle_request if max_left > lka_angle_request else max_left
-        #lka_angle_request = lka_angle_request if max_right < lka_angle_request else max_right
-        
-        # calculate derivative, set 0 on first run.  
-        #self.rel_angle_change = (lka_angle_request - self.lka_angle_request_prev) if self.acc_enabled_prev else 0 
-        
-        #steer_direction = CCP.STEER_RIGHT if self.rel_angle_change > 0 else CCP.STEER_LEFT
-        #steer_direction = self.steer_direction_prev if self.rel_angle_change == 0 else steer_direction
-        # Update stored values
-        #self.steer_right_ratio_prev = steer_right_ratio
       else:
         steer_direction = 0
         lka_angle_request = 0
@@ -214,10 +204,6 @@ class CarController():
       #self.rel_angle_change_prev = self.rel_angle_change
       self.steer_direction_prev = steer_direction
       
-      # debug
-      #lkas = CS.lkas
-      #print "lka_angle_request: %.1f" % lka_angle_request    
-
       # send can, add to list.
       can_sends.append(volvocan.create_steering_control(self.packer, self.CP.carFingerprint, lka_angle_request, frame, acc_enabled, steer_direction, unkown))
     

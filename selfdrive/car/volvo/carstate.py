@@ -195,13 +195,10 @@ class CarState(CarStateBase):
       signals.append(("ACCStatusOnOff", "fromFSM0", 0x00))
       signals.append(("ACCStatusActive", "fromFSM0", 0x00))
 
-      # TODO only for testing when i havent got a good v60 recording. Move later
       checks.append(('fromFSM0', 100))
       checks.append(('fromFSMSteeringRequest', 50))
-      #checks.append()
     
     # TODO add checks and signals nescessary
-    # TODO Comment out during testing
     elif CP.carFingerprint == CAR.V60:
       signals.append(("ACCStatus", "fromFSM0", 0))
 
