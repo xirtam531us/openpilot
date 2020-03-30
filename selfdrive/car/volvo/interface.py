@@ -94,9 +94,6 @@ class CarInterface(CarInterfaceBase):
     ret = self.CS.update(self.cp, self.cp_cam)
     ret.canValid = self.cp.can_valid and self.cp_cam.can_valid
     
-    #if (self.frame % 100) == 0:
-    #  print(f'frame: {self.frame},can_rcv_valid: {can_rcv_valid}, cam_rcv_valid: {cam_rcv_valid}')
-    
     # Check for and process state-change events (button press or release) from
     # the turn stalk switch or ACC steering wheel/control stalk buttons.
     for button in self.CS.buttonStates:
