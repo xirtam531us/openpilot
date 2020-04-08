@@ -1,9 +1,10 @@
 from common.numpy_fast import clip
-from selfdrive.car.volvo.values import DBC, CarControllerParams as CCP 
+from selfdrive.car.volvo.values import CAR, DBC, CarControllerParams as CCP 
 from selfdrive.car.volvo import volvocan
 from opendbc.can.packer import CANPacker
 from collections import deque
 from selfdrive.kegman_conf import kegman_conf
+from selfdrive.controls.lib.pid import apply_deadzone
 kegman = kegman_conf()
 
 class CarController():
@@ -27,6 +28,14 @@ class CarController():
     self.steer_direction_prev = 0
     self.steer_direction_deque = deque(maxlen=self.DEQ_LEN)
     self.steer_right_ratio_prev = 0
+
+    # Direction change statemachine
+    self.UNBLOCKED = 0
+    self.BLOCKED = 1
+    self.dir_state = 0
+    self.steer_direction_bf_block = 0
+    self.des_steer_direction_prev = 0
+
     
     # Diag
     self.clearDtcs = True # Set false to stop sending diagnostic requests 
@@ -56,6 +65,22 @@ class CarController():
     self.CP = CP
     #self.params = CarControllerParams(CP.carFingerprint)
     self.packer = CANPacker(DBC[CP.carFingerprint]['pt'])
+
+  def manipulateServo(self, CS, can_sends, steer_direction):
+    # Manipulate data from servo to FSM
+    # Zero active and torque bits.
+    msg = {
+      "LKAActive" : (CS.PSCMInfo.LKAActive & 0xD),
+      "LKATorque" : 0,
+      "byte0" : CS.PSCMInfo.byte0,
+      "byte3" : CS.PSCMInfo.byte3,
+      "byte4" : CS.PSCMInfo.byte4,
+      "byte7" : CS.PSCMInfo.byte7,
+      "SteeringAngleServo" : CS.PSCMInfo.SteeringAngleServo,
+      }
+    can_sends.append(self.packer.make_can_msg("fromServo1", 2, msg))
+    
+    return can_sends
 
   def max_angle_req(self, current_steer_angle, lka_angle_request_prev, steer_angle_delta_req_diff, max_act_angle_request_diff):
     """ 
@@ -149,6 +174,42 @@ class CarController():
 
     return steer_direction
 
+  def dir_change(self, steer_direction, error):
+    """ Filters out direction changes """
+    
+    dessd = steer_direction
+    dzError = 0 if abs(error) < CCP.DEADZONE else error 
+    tState = -1 
+
+    # Update prev with desired if just enabled.
+    self.des_steer_direction_prev = steer_direction if not self.acc_enabled_prev else self.des_steer_direction_prev
+    
+    # Check conditions for state change
+    if self.dir_state == self.UNBLOCKED:
+      tState = self.BLOCKED if (steer_direction != self.des_steer_direction_prev and dzError != 0) else tState
+    elif self.dir_state == self.BLOCKED:
+      if (steer_direction == self.steer_direction_bf_block) or (self.block_steering <= 0) or (dzError == 0):
+        tState = self.UNBLOCKED
+
+    # State transition
+    if tState == self.UNBLOCKED:
+      self.dir_state = self.UNBLOCKED
+    elif tState == self.BLOCKED:
+      self.steer_direction_bf_block = self.des_steer_direction_prev  
+      self.block_steering = self.BLOCK_LEN
+      self.dir_state = self.BLOCKED
+
+    #  Run actions in state
+    if self.dir_state == self.UNBLOCKED:
+      if dzError == 0:
+        steer_direction = self.des_steer_direction_prev # Set old request when inside deadzone
+    if self.dir_state == self.BLOCKED:
+      self.block_steering -= 1
+      steer_direction = CCP.STEER_NO
+
+    #print("State:{} Sd:{} Sdp:{} Bs:{} Dz:{:.2f} Err:{:.2f}".format(self.dir_state, steer_direction, self.des_steer_direction_prev, self.block_steering, dzError, error))
+    return steer_direction
+
   def update(self, CS, frame, actuators): #, pcm_cancel_cmd, visual_alert, left_line, right_line):
     """ Controls thread """
     
@@ -161,8 +222,27 @@ class CarController():
     # run at 50hz
     if (frame % 2 == 0):
       
-      # steering on   
       if acc_enabled and CS.out.vEgo > self.CP.minSteerSpeed:
+        current_steer_angle = CS.out.steeringAngle
+        lka_angle_request = actuators.steerAngle # Desired value from pathplanner
+        
+        steer_direction = CCP.STEER_RIGHT if current_steer_angle > lka_angle_request else CCP.STEER_LEFT
+        steer_direction = self.dir_change(steer_direction, current_steer_angle-lka_angle_request) # Filter the direction change 
+        
+        # get maximum allowed steering angle request
+        max_right, max_left, max_delta_right, max_delta_left = self.max_angle_req(current_steer_angle, self.lka_angle_request_prev, CCP.STEER_ANGLE_DELTA_REQ_DIFF, CCP.MAX_ACT_ANGLE_REQUEST_DIFF)
+        
+        # set clipped lka angle request
+        # first run is allowed to bypass the delta change requirement
+        lka_angle_request = clip(lka_angle_request, max_delta_right, max_delta_left) if self.acc_enabled_prev else lka_angle_request
+        lka_angle_request = clip(lka_angle_request, max_right, max_left)
+
+      else:
+        steer_direction = CCP.STEER_NO
+        lka_angle_request = 0
+
+      # steering on   
+      """if acc_enabled and CS.out.vEgo > self.CP.minSteerSpeed and False:
 
         current_steer_angle = CS.out.steeringAngle
         lka_angle_request = actuators.steerAngle # Desired value from pathplanner
@@ -172,12 +252,11 @@ class CarController():
         steer_direction = self.direction_change(steer_direction) # Filter the direction change 
         #unkown = -80 if steer_direction == CCP.STEER_RIGHT else 80
         
-        '''
         # Test adding messages to send directly when changing direction
         N_TIMES = 4
         if steer_direction != self.steer_direction_prev:
           for i in range(N_TIMES):
-            can_sends.append(volvocan.create_steering_control(self.packer, CS.CP.carFingerprint, lka_angle_request, frame, acc_enabled, CCP.STEER_NO, 0)) '''
+            can_sends.append(volvocan.create_steering_control(self.packer, CS.CP.carFingerprint, lka_angle_request, frame, acc_enabled, CCP.STEER_NO, 0)) 
 
         # get maximum allowed steering angle request
         max_right, max_left, max_delta_right, max_delta_left = self.max_angle_req(current_steer_angle, self.lka_angle_request_prev, CCP.STEER_ANGLE_DELTA_REQ_DIFF, CCP.MAX_ACT_ANGLE_REQUEST_DIFF)
@@ -194,19 +273,26 @@ class CarController():
         self.rel_angle_change = 0
         self.block_steering = 0
         #unkown = 0
-
+        """
+      
       # set unkown to fix value
       unkown = 0
 
       # update stored values
       self.acc_enabled_prev = acc_enabled
       self.lka_angle_request_prev = lka_angle_request
-      #self.rel_angle_change_prev = self.rel_angle_change
       self.steer_direction_prev = steer_direction
+      if steer_direction == CCP.STEER_RIGHT or steer_direction == CCP.STEER_LEFT:
+        self.des_steer_direction_prev = steer_direction
+      
+      if self.CP.carFingerprint == CAR.V40:
+        # Manipulate data from servo to FSM
+        # based on if we are steering or not
+        can_sends = self.manipulateServo(CS, can_sends, steer_direction)
       
       # send can, add to list.
       can_sends.append(volvocan.create_steering_control(self.packer, self.CP.carFingerprint, lka_angle_request, frame, acc_enabled, steer_direction, unkown))
-    
+
     # Send diagnostic requests
     if(frame % 100 == 0) and (not self.clearDtcs):
       # Request diagnostic codes, 2 Hz

@@ -6,8 +6,10 @@ class CarControllerParams():
   STEER_RIGHT = 1
   STEER_LEFT = 2
   # maximum degress offset on request from current steering angle
-  MAX_ACT_ANGLE_REQUEST_DIFF = 8
-  STEER_ANGLE_DELTA_REQ_DIFF = 0.05
+  MAX_ACT_ANGLE_REQUEST_DIFF = 5
+  STEER_ANGLE_DELTA_REQ_DIFF = 0.15
+  # don't change steer direction
+  DEADZONE = 0.3
 
 
 BUTTON_STATES = {

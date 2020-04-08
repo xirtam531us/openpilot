@@ -13,12 +13,36 @@ class diagInfo():
     self.diagCEMResp = 0
     self.diagPSCMResp = 0
 
+class PSCMInfo():
+  def __init__(self):
+    self.byte0 = 0
+    self.byte3 = 0
+    self.byte4 = 0
+    self.byte7 = 0
+    self.LKAActive = 0
+    self.LKATorque = 0
+    self.SteeringAngleServo = 0
+
+class FSMInfo():
+  def __init__(self):
+    self.SET_X_E3 = 0
+    self.SET_X_B4 = 0
+    self.SET_X_08 = 0
+    self.Unkown = 0
+    self.LKAAngleRequest = 0
+    self.SET_X_02 = 0
+    self.Checksum = 0
+    self.LKADirection = 0
+    self.SET_X_25 = 0
+
 class CarState(CarStateBase):
   def __init__(self, CP):
     super().__init__(CP)
     # Live tuning
     self.kegman = kegman_conf()
     self.diag = diagInfo() # diagInfo
+    self.PSCMInfo = PSCMInfo() # PSCMInfo try remove fault code in FSM
+    self.FSMInfo = FSMInfo()
 
     self.can_define = CANDefine(DBC[CP.carFingerprint]['pt'])
     self.buttonStates = BUTTON_STATES.copy()
@@ -93,7 +117,28 @@ class CarState(CarStateBase):
     self.diag.diagFSMResp = int(cp_cam.vl["diagFSMResp"]["byte03"])
     self.diag.diagCEMResp = int(cp.vl["diagCEMResp"]["byte03"])
     self.diag.diagPSCMResp = int(cp.vl["diagPSCMResp"]["byte03"])
-    
+
+    if self.CP.carFingerprint == CAR.V40:
+      # PSCMInfo
+      self.PSCMInfo.byte0 = int(cp.vl['fromServo1']['byte0']) 
+      self.PSCMInfo.byte3 = int(cp.vl['fromServo1']['byte3']) 
+      self.PSCMInfo.byte4 = int(cp.vl['fromServo1']['byte4']) 
+      self.PSCMInfo.byte7 = int(cp.vl['fromServo1']['byte7']) 
+      self.PSCMInfo.LKATorque = int(cp.vl['fromServo1']['LKATorque']) 
+      self.PSCMInfo.LKAActive = int(cp.vl['fromServo1']['LKAActive']) 
+      self.PSCMInfo.SteeringAngleServo = int(cp.vl['fromServo1']['SteeringAngleServo']) 
+      
+      # FSMInfo
+      self.FSMInfo.SET_X_E3 = int(cp_cam.vl['fromFSMSteeringRequest']['SET_X_E3']) 
+      self.FSMInfo.SET_X_B4 = int(cp_cam.vl['fromFSMSteeringRequest']['SET_X_B4']) 
+      self.FSMInfo.SET_X_08 = int(cp_cam.vl['fromFSMSteeringRequest']['SET_X_08']) 
+      self.FSMInfo.SET_X_02 = int(cp_cam.vl['fromFSMSteeringRequest']['SET_X_02']) 
+      self.FSMInfo.SET_X_25 = int(cp_cam.vl['fromFSMSteeringRequest']['SET_X_25']) 
+      self.FSMInfo.Unkown = int(cp_cam.vl['fromFSMSteeringRequest']['Unkown']) 
+      self.FSMInfo.LKAAngleRequest = int(cp_cam.vl['fromFSMSteeringRequest']['LKAAngleRequest']) 
+      self.FSMInfo.Checksum = int(cp_cam.vl['fromFSMSteeringRequest']['Checksum']) 
+      self.FSMInfo.LKADirection = int(cp_cam.vl['fromFSMSteeringRequest']['LKADirection']) 
+      
     return ret
 
   @staticmethod
@@ -138,6 +183,15 @@ class CarState(CarStateBase):
       signals.append(("BrakePress0", "BrakeMessages", 0))
       signals.append(("BrakePress1", "BrakeMessages", 0))
       signals.append(("BrakeStatus", "BrakeMessages", 0))
+
+      # TEST try removing fault code in FSM.
+      signals.append(("byte0", "fromServo1", 0))
+      signals.append(("byte3", "fromServo1", 0))
+      signals.append(("byte4", "fromServo1", 0))
+      signals.append(("byte7", "fromServo1", 0))
+      signals.append(("LKATorque", "fromServo1", 0))
+      #signals.append(("LKAActive", "fromServo1", 0))
+      #signals.append(("SteeringAngleServo", "fromServo1", 0))
      
       checks.append(("BrakeMessages", 50))
       checks.append(("ACC", 17))
@@ -188,10 +242,16 @@ class CarState(CarStateBase):
     # Car specific
     if CP.carFingerprint == CAR.V40:
       signals.append(("SET_X_E3", "fromFSMSteeringRequest", 0xE3))
-      signals.append(("SET_X_B3", "fromFSMSteeringRequest", 0xB3))
+      signals.append(("SET_X_B4", "fromFSMSteeringRequest", 0xB4))
       signals.append(("SET_X_08", "fromFSMSteeringRequest", 0x08))
       signals.append(("SET_X_02", "fromFSMSteeringRequest", 0x02))
       signals.append(("SET_X_25", "fromFSMSteeringRequest", 0x25))
+      # Test to get rid of faultcodes in FSM & PSCM
+      signals.append(("Unkown", "fromFSMSteeringRequest", 0x80))
+      signals.append(("LKAAngleRequest", "fromFSMSteeringRequest", 0x2000))
+      signals.append(("Checksum", "fromFSMSteeringRequest", 0x5f))
+      signals.append(("LKADirection", "fromFSMSteeringRequest", 0x00))
+
       signals.append(("ACCStatusOnOff", "fromFSM0", 0x00))
       signals.append(("ACCStatusActive", "fromFSM0", 0x00))
 
