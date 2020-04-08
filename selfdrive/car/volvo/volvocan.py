@@ -41,10 +41,10 @@ def create_steering_control(packer, car_fingerprint, apply_steer, frame, steer_o
     }
   elif car_fingerprint == CAR.V60:
     values_static = {
-      "SET_X_22": 0x22,
+      "SET_X_22": 0x25,
       "SET_X_02": 0x02,
       "SET_X_10": 0x10,
-      "SET_X_A4": 0xA4,
+      "SET_X_A4": 0xA7,
     }
   else:
     print("ERROR: Car model not supported.")
