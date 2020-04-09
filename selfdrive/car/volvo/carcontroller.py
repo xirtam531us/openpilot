@@ -291,7 +291,7 @@ class CarController():
         can_sends = self.manipulateServo(CS, can_sends, steer_direction)
       
       # send can, add to list.
-      can_sends.append(volvocan.create_steering_control(self.packer, self.CP.carFingerprint, lka_angle_request, frame, acc_enabled, steer_direction, unkown))
+      can_sends.append(volvocan.create_steering_control(self.packer, self.CP.carFingerprint, lka_angle_request, frame, acc_enabled, steer_direction, unkown, CS.FSMInfo))
 
     # Send diagnostic requests
     if(frame % 100 == 0) and (not self.clearDtcs):

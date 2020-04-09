@@ -25,6 +25,7 @@ class PSCMInfo():
 
 class FSMInfo():
   def __init__(self):
+    # C1
     self.SET_X_E3 = 0
     self.SET_X_B4 = 0
     self.SET_X_08 = 0
@@ -34,6 +35,13 @@ class FSMInfo():
     self.Checksum = 0
     self.LKADirection = 0
     self.SET_X_25 = 0
+
+    # EUCD
+    self.SET_X_22 = 0
+    self.SET_X_02 = 0
+    self.SET_X_10 = 0
+    self.SET_X_A4 = 0
+
 
 class CarState(CarStateBase):
   def __init__(self, CP):
@@ -137,7 +145,14 @@ class CarState(CarStateBase):
       self.FSMInfo.Unkown = int(cp_cam.vl['fromFSMSteeringRequest']['Unkown']) 
       self.FSMInfo.LKAAngleRequest = int(cp_cam.vl['fromFSMSteeringRequest']['LKAAngleRequest']) 
       self.FSMInfo.Checksum = int(cp_cam.vl['fromFSMSteeringRequest']['Checksum']) 
-      self.FSMInfo.LKADirection = int(cp_cam.vl['fromFSMSteeringRequest']['LKADirection']) 
+      self.FSMInfo.LKADirection = int(cp_cam.vl['fromFSMSteeringRequest']['LKADirection'])
+    
+    elif self.CP.carFingerprint == CAR.V60:
+      # FSMInfo
+      self.FSMInfo.SET_X_22 = int(cp_cam.vl['fromFSMSteeringRequest']['SET_X_22']) 
+      self.FSMInfo.SET_X_02 = int(cp_cam.vl['fromFSMSteeringRequest']['SET_X_02']) 
+      self.FSMInfo.SET_X_A4 = int(cp_cam.vl['fromFSMSteeringRequest']['SET_X_A4']) 
+      self.FSMInfo.SET_X_10 = int(cp_cam.vl['fromFSMSteeringRequest']['SET_X_10']) 
       
     return ret
 
@@ -261,8 +276,14 @@ class CarState(CarStateBase):
     # TODO add checks and signals nescessary
     elif CP.carFingerprint == CAR.V60:
       signals.append(("ACCStatus", "fromFSM0", 0))
+      
+      signals.append(("SET_X_22", "fromFSMSteeringRequest", 0x00))
+      signals.append(("SET_X_02", "fromFSMSteeringRequest", 0x00))
+      signals.append(("SET_X_10", "fromFSMSteeringRequest", 0x00))
+      signals.append(("SET_X_A4", "fromFSMSteeringRequest", 0x00))
 
       checks.append(('fromFSM0', 100))
+      checks.append(('fromFSMSteeringRequest', 50))
 
     
     return CANParser(DBC[CP.carFingerprint]['pt'], signals, checks, 2)
