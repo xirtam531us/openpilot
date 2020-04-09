@@ -21,7 +21,7 @@ def create_chksum(dat, car_fingerprint):
   # Checksum is inverted sum of all bytes
   return s ^ 0xFF
 
-def create_steering_control(packer, car_fingerprint, apply_steer, frame, steer_on, steer_direction, unkown):  
+def create_steering_control(packer, car_fingerprint, apply_steer, frame, steer_on, steer_direction, unkown, FSMInfo):  
  
   # Set common parameters
   values = {
@@ -41,10 +41,10 @@ def create_steering_control(packer, car_fingerprint, apply_steer, frame, steer_o
     }
   elif car_fingerprint == CAR.V60:
     values_static = {
-      "SET_X_22": 0x25,
-      "SET_X_02": 0x02,
-      "SET_X_10": 0x10,
-      "SET_X_A4": 0xA7,
+      "SET_X_22": FSMInfo.SET_X_22,
+      "SET_X_02": FSMInfo.SET_X_02,
+      "SET_X_10": FSMInfo.SET_X_10,
+      "SET_X_A4": FSMInfo.SET_X_A4,
     }
   else:
     print("ERROR: Car model not supported.")
