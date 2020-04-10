@@ -15,13 +15,20 @@ class diagInfo():
 
 class PSCMInfo():
   def __init__(self):
+    # Common
     self.byte0 = 0
-    self.byte3 = 0
     self.byte4 = 0
     self.byte7 = 0
     self.LKAActive = 0
     self.LKATorque = 0
     self.SteeringAngleServo = 0
+
+    # C1
+    self.byte3 = 0
+
+    # EUCD
+    self.SteeringWheelRateOfChange = 0
+
 
 class FSMInfo():
   def __init__(self):
@@ -125,17 +132,23 @@ class CarState(CarStateBase):
     self.diag.diagFSMResp = int(cp_cam.vl["diagFSMResp"]["byte03"])
     self.diag.diagCEMResp = int(cp.vl["diagCEMResp"]["byte03"])
     self.diag.diagPSCMResp = int(cp.vl["diagPSCMResp"]["byte03"])
+  
+    # PSCMInfo
+    # Common
+    self.PSCMInfo.byte0 = int(cp.vl['fromServo1']['byte0']) 
+    self.PSCMInfo.byte4 = int(cp.vl['fromServo1']['byte4']) 
+    self.PSCMInfo.byte7 = int(cp.vl['fromServo1']['byte7']) 
+    self.PSCMInfo.LKATorque = int(cp.vl['fromServo1']['LKATorque']) 
+    self.PSCMInfo.LKAActive = int(cp.vl['fromServo1']['LKAActive']) 
+    self.PSCMInfo.SteeringAngleServo = int(cp.vl['fromServo1']['SteeringAngleServo']) 
+
+    # Specifics  
+    if self.CP.carFingerprint == CAR.V40:
+      self.PSCMInfo.byte3 = int(cp.vl['fromServo1']['byte3']) 
+    elif self.CP.carFingerprint == CAR.V60:
+      self.PSCMInfo.SteeringWheelRateOfChange = int(cp.vl['fromServo1']['SteeringWheelRateOfChange'])
 
     if self.CP.carFingerprint == CAR.V40:
-      # PSCMInfo
-      self.PSCMInfo.byte0 = int(cp.vl['fromServo1']['byte0']) 
-      self.PSCMInfo.byte3 = int(cp.vl['fromServo1']['byte3']) 
-      self.PSCMInfo.byte4 = int(cp.vl['fromServo1']['byte4']) 
-      self.PSCMInfo.byte7 = int(cp.vl['fromServo1']['byte7']) 
-      self.PSCMInfo.LKATorque = int(cp.vl['fromServo1']['LKATorque']) 
-      self.PSCMInfo.LKAActive = int(cp.vl['fromServo1']['LKAActive']) 
-      self.PSCMInfo.SteeringAngleServo = int(cp.vl['fromServo1']['SteeringAngleServo']) 
-      
       # FSMInfo
       self.FSMInfo.SET_X_E3 = int(cp_cam.vl['fromFSMSteeringRequest']['SET_X_E3']) 
       self.FSMInfo.SET_X_B4 = int(cp_cam.vl['fromFSMSteeringRequest']['SET_X_B4']) 
@@ -165,8 +178,6 @@ class CarState(CarStateBase):
     signals = [
       # sig_name, sig_address, default
       ("VehicleSpeed", "VehicleSpeed1", 0),
-      ("SteeringAngleServo", "fromServo1", 0),
-      ("LKAActive", "fromServo1", 0),
       ("TurnSignal", "MiscCarInfo", 0),
       ("ACCOnOffBtn", "CCButtons", 0),
       ("ACCResumeBtn", "CCButtons", 0),
@@ -175,6 +186,15 @@ class CarState(CarStateBase):
       ("ACCStopBtn", "CCButtons", 0),
       ("TimeGapIncreaseBtn", "CCButtons", 0),
       ("TimeGapDecreaseBtn", "CCButtons", 0),
+      
+      # Common PSCM signals
+      ("SteeringAngleServo", "fromServo1", 0),
+      ("LKATorque", "fromServo1", 0),
+      ("LKAActive", "fromServo1", 0),
+      ("byte0", "fromServo1", 0),
+      ("byte4", "fromServo1", 0),
+      ("byte7", "fromServo1", 0),
+      
       # diagnostic
       ("byte03", "diagCEMResp", 0),
       ("byte47", "diagCEMResp", 0),
@@ -199,14 +219,7 @@ class CarState(CarStateBase):
       signals.append(("BrakePress1", "BrakeMessages", 0))
       signals.append(("BrakeStatus", "BrakeMessages", 0))
 
-      # TEST try removing fault code in FSM.
-      signals.append(("byte0", "fromServo1", 0))
       signals.append(("byte3", "fromServo1", 0))
-      signals.append(("byte4", "fromServo1", 0))
-      signals.append(("byte7", "fromServo1", 0))
-      signals.append(("LKATorque", "fromServo1", 0))
-      #signals.append(("LKAActive", "fromServo1", 0))
-      #signals.append(("SteeringAngleServo", "fromServo1", 0))
      
       checks.append(("BrakeMessages", 50))
       checks.append(("ACC", 17))
@@ -215,9 +228,9 @@ class CarState(CarStateBase):
     if CP.carFingerprint == CAR.V60:
       signals.append(("AccPedal", "AccPedal", 0))
       signals.append(("BrakePedal", "BrakePedal", 0))
-  
-      #signals.append(("ACCStatus", "fromFSM0", 0x00)) # Just used in debugging TODO
-      
+
+      signals.append(("SteeringWheelRateOfChange", "fromServo1", 0))
+
       checks.append(("AccPedal", 100))
       checks.append(("BrakePedal", 50))
 
