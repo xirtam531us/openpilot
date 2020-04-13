@@ -1,4 +1,4 @@
-from selfdrive.car.volvo.values import CAR
+from selfdrive.car.volvo.values import CAR, PLATFORM
 
 def manipulateServo(packer, car_fingerprint, CS, can_sends):
   # Manipulate data from servo to FSM
@@ -12,12 +12,12 @@ def manipulateServo(packer, car_fingerprint, CS, can_sends):
       "byte7" : CS.PSCMInfo.byte7,
   }
 
-  if car_fingerprint == CAR.V40: 
+  if car_fingerprint in PLATFORM.C1: 
     msg["byte3"] = CS.PSCMInfo.byte3
-  elif car_fingerprint == CAR.V60:
+  elif car_fingerprint in PLATFORM.EUCD:
     msg["SteeringWheelRateOfChange"] = CS.PSCMInfo.SteeringWheelRateOfChange
 
-  can_sends.append(packer.make_can_msg("fromServo1", 2, msg))
+  can_sends.append(packer.make_can_msg("PSCM1", 2, msg))
   
   return can_sends
 
@@ -29,11 +29,11 @@ def create_chksum(dat, car_fingerprint):
   # Steering angle request = -360 -> 360
     
   # Extract LKAAngleRequest, LKADirection and Unknown
-  if car_fingerprint == CAR.V40: 
+  if car_fingerprint in PLATFORM.C1: 
     steer_angle_request = ((dat[4] & 0x3F) << 8) + dat[5]
     steering_direction_request = dat[7] & 0x03  
     unkown = dat[3]
-  elif car_fingerprint == CAR.V60:
+  elif car_fingerprint in PLATFORM.EUCD:
     steer_angle_request = ((dat[3] & 0x3F) << 8) + dat[4]
     steering_direction_request = dat[5] & 0x03  
     unkown = dat[2]
@@ -43,17 +43,18 @@ def create_chksum(dat, car_fingerprint):
   # Checksum is inverted sum of all bytes
   return s ^ 0xFF
 
+
 def create_steering_control(packer, frame, car_fingerprint, SteerCommand, FSMInfo):  
  
   # Set common parameters
   values = {
-    "LKAAngleRequest": SteerCommand.angle_request,
-    "LKADirection": SteerCommand.steer_direction,
+    "LKAAngleReq": SteerCommand.angle_request,
+    "LKASteerDirection": SteerCommand.steer_direction,
     "Unkown": SteerCommand.unkown,
   }
   
   # Set car specific parameters
-  if car_fingerprint == CAR.V40:
+  if car_fingerprint in PLATFORM.C1:
     values_static = {
       "SET_X_E3": 0xE3,
       "SET_X_B4": 0xB4,
@@ -61,23 +62,27 @@ def create_steering_control(packer, frame, car_fingerprint, SteerCommand, FSMInf
       "SET_X_02": 0x02,
       "SET_X_25": 0x25,
     }
-  elif car_fingerprint == CAR.V60:
+  elif car_fingerprint in PLATFORM.EUCD:
     values_static = {
       "SET_X_22": FSMInfo.SET_X_22,
       "SET_X_02": FSMInfo.SET_X_02,
       "SET_X_10": FSMInfo.SET_X_10,
       "SET_X_A4": FSMInfo.SET_X_A4,
     }
-  else:
-    print("ERROR: Car model not supported.")
-    return [] 
 
   # Combine common and static parameters
   values.update(values_static)
 
   # Create can message with "translated" can bytes.
-  dat = packer.make_can_msg("fromFSMSteeringRequest", 0, values)[2]
+  if car_fingerprint in PLATFORM.C1:
+    dat = packer.make_can_msg("FSM1", 0, values)[2]
+  elif car_fingerprint in PLATFORM.EUCD:
+    dat = packer.make_can_msg("FSM2", 0, values)[2]
+
   values["Checksum"] = create_chksum(dat, car_fingerprint)
-    
-  return packer.make_can_msg("fromFSMSteeringRequest", 0, values)
+
+  if car_fingerprint in PLATFORM.C1:
+    return packer.make_can_msg("FSM1", 0, values)
+  elif car_fingerprint in PLATFORM.EUCD:
+    return packer.make_can_msg("FSM2", 0, values)
 
