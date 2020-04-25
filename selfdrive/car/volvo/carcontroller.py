@@ -33,8 +33,9 @@ class CarController():
     
     # Diag
     self.doDTCRequests = True # Turn on and off DTC requests
+    self.checkPN = True # Check partnumbers
     self.clearDtcs = True # Set false to stop sending diagnostic requests 
-    self.timeout = 999
+    self.timeout = 0
     self.diagRequest = { 
       "byte0": 0x03,
       "byte1": 0x19,
@@ -54,6 +55,13 @@ class CarController():
       "byte3": 0xFF,
       "byte4": 0xFF,
       }
+
+    # Part number
+    self.cnt = 0 # Init at 0 always
+    self.sndNxtFrame = 0 # Init at low value 
+    self.dictKeys = ["byte"+str(x) for x in range(8)]
+    startdid = 0xf1a1
+    self.dids = [x for x in range(startdid, startdid+9)]
 
     # Setup detection helper. Routes commands to
     # an appropriate CAN bus number.
@@ -84,7 +92,6 @@ class CarController():
     max_left = current_steer_angle+CCP.MAX_ACT_ANGLE_REQUEST_DIFF
 
     return max_right, max_left, max_delta_right, max_delta_left
-
 
   def dir_change(self, steer_direction, error):
     """ Filters out direction changes
@@ -145,7 +152,8 @@ class CarController():
         self.SteerCommand.angle_request = actuators.steerAngle # Desired value from pathplanner
 
         # Create unkown from angle request (before constraints)
-        self.SteerCommand.unkown = clip(self.SteerCommand.angle_request*10, -100, 100)
+        #self.SteerCommand.unkown = clip(self.SteerCommand.angle_request*5, -127, 127)
+        self.SteerCommand.unkown = -127 if current_steer_angle > self.SteerCommand.angle_request else 127
 
         # MIGHT be needed for EUCD
         #self.SteerCommand.steer_direction = CCP.STEER_RIGHT if current_steer_angle > self.SteerCommand.angle_request else CCP.STEER_LEFT
@@ -192,15 +200,35 @@ class CarController():
         self.timeout = frame + 5 # Set wait time 
       
       # Handle flow control in case of many DTC
-      if frame > self.timeout: # Wait fix time before sending flow control, otherwise just spamming...
-        self.timeout = frame-1 
+      if frame > self.timeout and self.timeout > 0: # Wait fix time before sending flow control, otherwise just spamming...
+        self.timeout = 0 
         if (CS.diag.diagFSMResp & 0x10000000):
           can_sends.append(self.packer.make_can_msg("diagFSMReq", 2, self.flowControl))
         if (CS.diag.diagCEMResp & 0x10000000):
           can_sends.append(self.packer.make_can_msg("diagCEMReq", 0, self.flowControl))
         if (CS.diag.diagPSCMResp & 0x10000000):
           can_sends.append(self.packer.make_can_msg("diagPSCMReq", 0, self.flowControl))
-        
+        if (CS.diag.diagCVMResp & 0x10000000):
+          can_sends.append(self.packer.make_can_msg("diagCVMReq", 0, self.flowControl))
+
+      # Check part numbers
+      if self.checkPN and frame > 100 and frame > self.sndNxtFrame:
+        if self.cnt < len(self.dids):
+          did = [0x03, 0x22, (self.dids[self.cnt]&0xff00)>>8, self.dids[self.cnt]&0x00ff] # Create diagnostic command
+          did.extend([0]*(8-len(did))) 
+          diagReq = dict(zip(self.dictKeys,did))
+
+          can_sends.append(self.packer.make_can_msg("diagFSMReq", 2, diagReq))
+          can_sends.append(self.packer.make_can_msg("diagCEMReq", 0, diagReq))
+          can_sends.append(self.packer.make_can_msg("diagPSCMReq", 0, diagReq))
+          can_sends.append(self.packer.make_can_msg("diagCVMReq", 0, diagReq))
+          self.cnt += 1
+          self.timeout = frame+5 # When to send flowControl
+          self.sndNxtFrame = self.timeout+5 # When to send next part number request
+
+        elif True: # Stop when list has been looped thru.
+          self.checkPN = False
+
       # Clear DTCs in FSM on start
       # TODO check for engine running before clearing dtc.
       if(self.clearDtcs and (frame > 0) and (frame % 500 == 0)):
