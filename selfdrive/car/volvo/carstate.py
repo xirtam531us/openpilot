@@ -12,6 +12,7 @@ class diagInfo():
     self.diagFSMResp = 0
     self.diagCEMResp = 0
     self.diagPSCMResp = 0
+    self.diagCVMResp = 0
 
 class PSCMInfo():
   def __init__(self):
@@ -135,7 +136,9 @@ class CarState(CarStateBase):
     # Diagnostics, for debugging
     self.diag.diagFSMResp = int(cp_cam.vl["diagFSMResp"]["byte03"])
     self.diag.diagCEMResp = int(cp.vl["diagCEMResp"]["byte03"])
+    self.diag.diagCVMResp = int(cp.vl["diagCVMResp"]["byte03"])
     self.diag.diagPSCMResp = int(cp.vl["diagPSCMResp"]["byte03"])
+
   
     # PSCMInfo
     # Common
@@ -203,6 +206,8 @@ class CarState(CarStateBase):
       ("byte47", "diagCEMResp", 0),
       ("byte03", "diagPSCMResp", 0),
       ("byte47", "diagPSCMResp", 0),
+      ("byte03", "diagCVMResp", 0),
+      ("byte47", "diagCVMResp", 0),
     ]
    
     checks = [

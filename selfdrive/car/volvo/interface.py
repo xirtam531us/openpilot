@@ -42,7 +42,7 @@ class CarInterface(CarInterfaceBase):
       ret.enableCamera = True # force openpilot to fake the stock camera
       
       # Steering settings - tuning parameters for lateral control.
-      ret.steerRateCost = 0.5 # Used in pathplanner for punishing? Steering movements?
+      ret.steerRateCost = 1. # Used in pathplanner for punishing? Steering movements?
       ret.steerActuatorDelay = 0.1 # Actuator delay from input to output.
       
       # No PID control used. Set to 0, otherwise pid loop crashes.
