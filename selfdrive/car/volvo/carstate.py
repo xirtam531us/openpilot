@@ -32,15 +32,17 @@ class PSCMInfo():
 
 class FSMInfo():
   def __init__(self):
+    # Common
+    self.TrqLim = 0
+    self.LKAAngleReq = 0
+    self.Checksum = 0
+    self.LKASteerDirection = 0
+    
     # C1
     self.SET_X_E3 = 0
     self.SET_X_B4 = 0
     self.SET_X_08 = 0
-    self.Unkown = 0
-    self.LKAAngleReq = 0
     self.SET_X_02 = 0
-    self.Checksum = 0
-    self.LKASteerDirection = 0
     self.SET_X_25 = 0
 
     # EUCD
@@ -49,15 +51,49 @@ class FSMInfo():
     self.SET_X_10 = 0
     self.SET_X_A4 = 0
 
+class CCButtons():
+  def __init__(self):
+    # Common
+    self.ACCOnOffBtn = 0
+    self.ACCSetBtn = 0
+    self.ACCResumeBtn = 0
+    self.ACCMinusBtn = 0
+    self.TimeGapIncreaseBtn = 0
+    self.TimeGapDecreaseBtn = 0
+
+    # C1
+    self.ACCStopBtn = 0
+    self.byte0 = 0
+    self.byte1 = 0
+    self.byte2 = 0
+    self.byte3 = 0
+    self.byte4 = 0
+    self.byte5 = 0
+    self.byte6 = 0
+    self.B7b0 = 0
+    self.B7b1 = 0
+    self.B7b3 = 0
+    self.B7b6 = 0
+
+    # EUCD
+    # TODO
+    # Inv = Inverted state of button, set to passive as default.
+    self.ACCOnOffBtnInv = 1
+    self.ACCSetBtnInv = 1
+    self.ACCResumeBtnInv = 1
+    self.ACCMinusBtnInv = 1
+    self.TimeGapIncreaseBtnInv = 1
+    self.TimeGapDecreaseBtnInv = 1
 
 class CarState(CarStateBase):
   def __init__(self, CP):
     super().__init__(CP)
     # Live tuning
     self.kegman = kegman_conf()
-    self.diag = diagInfo() # diagInfo
-    self.PSCMInfo = PSCMInfo() # PSCMInfo try remove fault code in FSM
+    self.diag = diagInfo() 
+    self.PSCMInfo = PSCMInfo() 
     self.FSMInfo = FSMInfo()
+    self.CCBtns = CCButtons()
 
     self.can_define = CANDefine(DBC[CP.carFingerprint]['pt'])
     self.buttonStates = BUTTON_STATES.copy()
@@ -107,7 +143,7 @@ class CarState(CarStateBase):
       ret.cruiseState.speed = cp.vl["ACC"]['SpeedTargetACC'] * CV.KPH_TO_MS
     
     elif self.CP.carFingerprint in PLATFORM.EUCD:
-      accStatus = cp_cam.vl["FSM0"]['ACCStatus']  # TODO
+      accStatus = cp_cam.vl["FSM0"]['ACCStatus']
       
       if accStatus == 2:
         # Acc in ready mode
@@ -139,6 +175,20 @@ class CarState(CarStateBase):
     self.diag.diagCVMResp = int(cp.vl["diagCVMResp"]["byte03"])
     self.diag.diagPSCMResp = int(cp.vl["diagPSCMResp"]["byte03"])
 
+    # ACC Buttons
+    if self.CP.carFingerprint in PLATFORM.C1:
+      self.CCBtns.ACCStopBtn = bool(cp.vl["CCButtons"]['ACCStopBtn'])
+      self.CCBtns.byte0 = int(cp.vl["CCButtons"]['byte0'])
+      self.CCBtns.byte1 = int(cp.vl["CCButtons"]['byte1'])
+      self.CCBtns.byte2 = int(cp.vl["CCButtons"]['byte2'])
+      self.CCBtns.byte3 = int(cp.vl["CCButtons"]['byte3'])
+      self.CCBtns.byte4 = int(cp.vl["CCButtons"]['byte4'])
+      self.CCBtns.byte5 = int(cp.vl["CCButtons"]['byte5'])
+      self.CCBtns.byte6 = int(cp.vl["CCButtons"]['byte6'])
+      self.CCBtns.B7b0 = bool(cp.vl["CCButtons"]['B7b0'])
+      self.CCBtns.B7b1 = bool(cp.vl["CCButtons"]['B7b1'])
+      self.CCBtns.B7b3 = bool(cp.vl["CCButtons"]['B7b3'])
+      self.CCBtns.B7b6 = bool(cp.vl["CCButtons"]['B7b6'])
   
     # PSCMInfo
     # Common
@@ -162,7 +212,8 @@ class CarState(CarStateBase):
       self.FSMInfo.SET_X_08 = int(cp_cam.vl['FSM1']['SET_X_08']) 
       self.FSMInfo.SET_X_02 = int(cp_cam.vl['FSM1']['SET_X_02']) 
       self.FSMInfo.SET_X_25 = int(cp_cam.vl['FSM1']['SET_X_25']) 
-      self.FSMInfo.Unkown = int(cp_cam.vl['FSM1']['Unkown']) 
+      # Why use these? TODO
+      self.FSMInfo.TrqLim = int(cp_cam.vl['FSM1']['TrqLim']) 
       self.FSMInfo.LKAAngleReq = int(cp_cam.vl['FSM1']['LKAAngleReq']) 
       self.FSMInfo.Checksum = int(cp_cam.vl['FSM1']['Checksum']) 
       self.FSMInfo.LKASteerDirection = int(cp_cam.vl['FSM1']['LKASteerDirection'])
@@ -178,9 +229,9 @@ class CarState(CarStateBase):
   @staticmethod
   def get_can_parser(CP):
     # ptcan on bus 0
-    # # this function generates lists for signal, messages and initial values
+    # this function generates lists for signal, messages and initial values
     
-    # Common signals for all cars
+    # Common signals for both platforms
     signals = [
       # sig_name, sig_address, default
       ("VehicleSpeed", "VehicleSpeed1", 0),
@@ -189,7 +240,6 @@ class CarState(CarStateBase):
       ("ACCResumeBtn", "CCButtons", 0),
       ("ACCSetBtn", "CCButtons", 0),
       ("ACCMinusBtn", "CCButtons", 0),
-      ("ACCStopBtn", "CCButtons", 0),
       ("TimeGapIncreaseBtn", "CCButtons", 0),
       ("TimeGapDecreaseBtn", "CCButtons", 0),
       
@@ -228,19 +278,46 @@ class CarState(CarStateBase):
       signals.append(("BrakeStatus", "BrakeMessages", 0))
       signals.append(("GearShifter", "TCM0", 0))
       
-      # Car specific Servo1 
+      # Servo 
       signals.append(("byte3", "PSCM1", 0))
+
+      # Buttons
+      signals.append(('ACCStopBtn', "CCButtons", 0))
+      signals.append(('byte0', "CCButtons", 0))
+      signals.append(('byte1', "CCButtons", 0))
+      signals.append(('byte2', "CCButtons", 0))
+      signals.append(('byte3', "CCButtons", 0))
+      signals.append(('byte4', "CCButtons", 0))
+      signals.append(('byte5', "CCButtons", 0))
+      signals.append(('byte6', "CCButtons", 0))
+      signals.append(('B7b0', "CCButtons", 0))
+      signals.append(('B7b1', "CCButtons", 0))
+      signals.append(('B7b3', "CCButtons", 0))
+      signals.append(('B7b6', "CCButtons", 0))
      
+      # Checks 
       checks.append(("BrakeMessages", 50))
       checks.append(("ACC", 17))
-      #checks.append(("PedalandBrake", ) # TODO
+      checks.append(("PedalandBrake", 100))
     
     if CP.carFingerprint in PLATFORM.EUCD:
+      # Gas / Brake
       signals.append(("AccPedal", "AccPedal", 0))
       signals.append(("BrakePedal", "BrakePedal", 0))
 
+      # Servo
       signals.append(("SteeringWheelRateOfChange", "PSCM1", 0))
+      
+      # Buttons
+      # Inv = Inverted state, init value set to passive
+      signals.append(("ACCOnOffBtnInv", "CCButtons", 1))
+      signals.append(("ACCResumeBtnInv", "CCButtons", 1))
+      signals.append(("ACCSetBtnInv", "CCButtons", 1))
+      signals.append(("ACCMinusBtnInv", "CCButtons", 1))
+      signals.append(("TimeGapDecreaseBtnInv", "CCButtons", 1))
+      signals.append(("TimeGapIncreaseBtnInv", "CCButtons", 1))
 
+      # Checks
       checks.append(("AccPedal", 100))
       checks.append(("BrakePedal", 50))
 
@@ -277,35 +354,43 @@ class CarState(CarStateBase):
     
     # Car specific
     if CP.carFingerprint in PLATFORM.C1:
+      # LKA Request
+      signals.append(("TrqLim", "FSM1", 0x80))
+      signals.append(("LKAAngleReq", "FSM1", 0x2000))
+      signals.append(("Checksum", "FSM1", 0x5f))
+      signals.append(("LKASteerDirection", "FSM1", 0x00))
       signals.append(("SET_X_E3", "FSM1", 0xE3))
       signals.append(("SET_X_B4", "FSM1", 0xB4))
       signals.append(("SET_X_08", "FSM1", 0x08))
       signals.append(("SET_X_02", "FSM1", 0x02))
       signals.append(("SET_X_25", "FSM1", 0x25))
-      # Test to get rid of faultcodes in FSM & PSCM
-      signals.append(("Unkown", "FSM1", 0x80))
-      signals.append(("LKAAngleReq", "FSM1", 0x2000))
-      signals.append(("Checksum", "FSM1", 0x5f))
-      signals.append(("LKASteerDirection", "FSM1", 0x00))
 
+      # ACC Status
       signals.append(("ACCStatusOnOff", "FSM0", 0x00))
       signals.append(("ACCStatusActive", "FSM0", 0x00))
 
+      # Checks
       checks.append(('FSM0', 100))
       checks.append(('FSM1', 50))
     
     # TODO add checks and signals nescessary
     elif CP.carFingerprint in PLATFORM.EUCD:
+      # ACC Status
       signals.append(("ACCStatus", "FSM0", 0))
-
-      # Test to forward heartbeat. TODO:
+      
+      # LKA Request
+      signals.append(("TrqLim", "FSM2", 0x80))
+      signals.append(("LKAAngleReq", "FSM2", 0x2000))
+      signals.append(("Checksum", "FSM2", 0x5f))
+      signals.append(("LKASteerDirection", "FSM2", 0x00))
       signals.append(("SET_X_22", "FSM2", 0x00))
       signals.append(("SET_X_02", "FSM2", 0x00))
       signals.append(("SET_X_10", "FSM2", 0x00))
       signals.append(("SET_X_A4", "FSM2", 0x00))
-
+      
+      # Checks
       checks.append(('FSM0', 100))
-      checks.append(('FSM1', 50))
+      checks.append(('FSM2', 50))
 
     
     return CANParser(DBC[CP.carFingerprint]['pt'], signals, checks, 2)
