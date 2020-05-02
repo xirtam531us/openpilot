@@ -6,7 +6,7 @@ from opendbc.can.packer import CANPacker
 class SteerCommand:
   angle_request = 0
   steer_direction = 0
-  unkown = 0
+  trqlim = 0
 
 
 class CarController():
@@ -40,7 +40,7 @@ class CarController():
       "byte0": 0x03,
       "byte1": 0x19,
       "byte2": 0x02,
-      "byte3": 0x0f,
+      "byte3": 0x02,
       }
     self.flowControl = { 
       "byte0": 0x30,
@@ -135,7 +135,7 @@ class CarController():
     return steer_direction
 
   def update(self, enabled, CS, frame,
-             actuators, cancel,
+             actuators, 
              visualAlert, leftLaneVisible,
              rightLaneVisible, leadVisible,
              leftLaneDepart, rightLaneDepart):
@@ -151,9 +151,9 @@ class CarController():
         current_steer_angle = CS.out.steeringAngle
         self.SteerCommand.angle_request = actuators.steerAngle # Desired value from pathplanner
 
-        # Create unkown from angle request (before constraints)
-        #self.SteerCommand.unkown = clip(self.SteerCommand.angle_request*5, -127, 127)
-        self.SteerCommand.unkown = -127 if current_steer_angle > self.SteerCommand.angle_request else 127
+        # Create trqlim from angle request (before constraints)
+        #self.SteerCommand.trqlim = clip(self.SteerCommand.angle_request*5, -127, 127)
+        self.SteerCommand.trqlim = -127 if current_steer_angle > self.SteerCommand.angle_request else 127
 
         # MIGHT be needed for EUCD
         #self.SteerCommand.steer_direction = CCP.STEER_RIGHT if current_steer_angle > self.SteerCommand.angle_request else CCP.STEER_LEFT
@@ -166,15 +166,14 @@ class CarController():
         
         # set clipped lka angle request
         # activating from disabled is allowed to bypass the delta change requirement
-        # TODO: Fix this with minSteerSpeed.
         self.SteerCommand.angle_request = clip(self.SteerCommand.angle_request, max_delta_right, max_delta_left) if self.acc_enabled_prev else self.SteerCommand.angle_request
         self.SteerCommand.angle_request = clip(self.SteerCommand.angle_request, max_right, max_left)
 
       else:
         self.SteerCommand.steer_direction = CCP.STEER_NO
         self.SteerCommand.angle_request = 0
-        # set unkown field to fix value
-        self.SteerCommand.unkown = 0
+        # set trqlim field to fix value
+        self.SteerCommand.trqlim = 0
 
       
       # update stored values
@@ -185,18 +184,27 @@ class CarController():
       
       # Manipulate data from servo to FSM
       # based on if we are steering or not
-      can_sends = volvocan.manipulateServo(self.packer, self.CP.carFingerprint, CS, can_sends)
+      can_sends.append(volvocan.manipulateServo(self.packer, self.CP.carFingerprint, CS))
     
       # send can, add to list.
       can_sends.append(volvocan.create_steering_control(self.packer, frame, self.CP.carFingerprint, self.SteerCommand, CS.FSMInfo))
+
+    
+    # Cancel ACC if engaged when OP is not.
+    if not enabled and CS.out.cruiseState.enabled:
+      can_sends.append(volvocan.cancelACC(self.packer, self.CP.carFingerprint, CS))
+
 
     # Send diagnostic requests
     if(self.doDTCRequests):
       if(frame % 100 == 0) and (not self.clearDtcs):
         # Request diagnostic codes, 2 Hz
-        can_sends.append(self.packer.make_can_msg("diagFSMReq", 2, self.diagRequest))
-        can_sends.append(self.packer.make_can_msg("diagPSCMReq", 0, self.diagRequest))
-        can_sends.append(self.packer.make_can_msg("diagCEMReq", 0, self.diagRequest))
+        #can_sends.append(self.packer.make_can_msg("diagFSMReq", 2, self.diagRequest))
+        can_sends.append(self.packer.make_can_msg("diagGlobalReq", 2, self.diagRequest))
+        can_sends.append(self.packer.make_can_msg("diagGlobalReq", 0, self.diagRequest))
+        #can_sends.append(self.packer.make_can_msg("diagPSCMReq", 0, self.diagRequest))
+        #can_sends.append(self.packer.make_can_msg("diagCEMReq", 0, self.diagRequest))
+        #can_sends.append(self.packer.make_can_msg("diagCVMReq", 0, self.diagRequest))
         self.timeout = frame + 5 # Set wait time 
       
       # Handle flow control in case of many DTC
@@ -214,7 +222,7 @@ class CarController():
       # Check part numbers
       if self.checkPN and frame > 100 and frame > self.sndNxtFrame:
         if self.cnt < len(self.dids):
-          did = [0x03, 0x22, (self.dids[self.cnt]&0xff00)>>8, self.dids[self.cnt]&0x00ff] # Create diagnostic command
+          did = [0x03, 0x22, (self.dids[self.cnt] & 0xff00)>>8, self.dids[self.cnt] & 0x00ff] # Create diagnostic command
           did.extend([0]*(8-len(did))) 
           diagReq = dict(zip(self.dictKeys,did))
 
@@ -232,9 +240,10 @@ class CarController():
       # Clear DTCs in FSM on start
       # TODO check for engine running before clearing dtc.
       if(self.clearDtcs and (frame > 0) and (frame % 500 == 0)):
+        can_sends.append(self.packer.make_can_msg("diagGlobalReq", 0, self.clearDTC))
         can_sends.append(self.packer.make_can_msg("diagFSMReq", 2, self.clearDTC))
-        can_sends.append(self.packer.make_can_msg("diagPSCMReq", 0, self.clearDTC))
-        can_sends.append(self.packer.make_can_msg("diagCEMReq", 0, self.clearDTC))
+        #can_sends.append(self.packer.make_can_msg("diagPSCMReq", 0, self.clearDTC))
+        #can_sends.append(self.packer.make_can_msg("diagCEMReq", 0, self.clearDTC))
         self.clearDtcs = False
       
     return can_sends

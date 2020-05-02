@@ -1,6 +1,35 @@
-from selfdrive.car.volvo.values import CAR, PLATFORM
+from selfdrive.car.volvo.values import PLATFORM
 
-def manipulateServo(packer, car_fingerprint, CS, can_sends):
+def cancelACC(packer, car_fingerprint, CS):
+  # Send cancel button to disengage ACC
+  # TODO add support for EUCD
+  msg = {
+    "ACCOnOffBtn": CS.CCBtns.ACCOnOffBtn,
+    "ACCSetBtn": CS.CCBtns.ACCSetBtn,
+    "ACCResumeBtn": CS.CCBtns.ACCResumeBtn,
+    "ACCMinusBtn": CS.CCBtns.ACCMinusBtn,
+    "TimeGapIncreaseBtn": CS.CCBtns.TimeGapIncreaseBtn,
+    "TimeGapDecreaseBtn": CS.CCBtns.TimeGapDecreaseBtn,
+  }  
+  
+  if car_fingerprint in PLATFORM.C1:
+    msg["ACCStopBtn"] = 1
+    msg["byte0"] = CS.CCBtns.byte0
+    msg["byte1"] = CS.CCBtns.byte1
+    msg["byte2"] = CS.CCBtns.byte2
+    msg["byte3"] = CS.CCBtns.byte3
+    msg["byte4"] = CS.CCBtns.byte4
+    msg["byte5"] = CS.CCBtns.byte5
+    msg["byte6"] = CS.CCBtns.byte6
+    msg["B7b0"] = CS.CCBtns.B7b0
+    msg["B7b1"] = CS.CCBtns.B7b1
+    msg["B7b3"] = CS.CCBtns.B7b3
+    msg["B7b6"] = CS.CCBtns.B7b6
+
+  return packer.make_can_msg("CCButtons", 0, msg)
+
+
+def manipulateServo(packer, car_fingerprint, CS):
   # Manipulate data from servo to FSM
   # Zero active and torque bits.
   msg = {
@@ -17,29 +46,27 @@ def manipulateServo(packer, car_fingerprint, CS, can_sends):
   elif car_fingerprint in PLATFORM.EUCD:
     msg["SteeringWheelRateOfChange"] = CS.PSCMInfo.SteeringWheelRateOfChange
 
-  can_sends.append(packer.make_can_msg("PSCM1", 2, msg))
-  
-  return can_sends
+  return packer.make_can_msg("PSCM1", 2, msg)
 
 
 def create_chksum(dat, car_fingerprint):
   # Input: dat byte array
   # Steering direction = 0 -> 3
-  # Unkown = 128
+  # TrqLim = 0 -> 255
   # Steering angle request = -360 -> 360
     
   # Extract LKAAngleRequest, LKADirection and Unknown
   if car_fingerprint in PLATFORM.C1: 
     steer_angle_request = ((dat[4] & 0x3F) << 8) + dat[5]
     steering_direction_request = dat[7] & 0x03  
-    unkown = dat[3]
+    trqlim = dat[3]
   elif car_fingerprint in PLATFORM.EUCD:
     steer_angle_request = ((dat[3] & 0x3F) << 8) + dat[4]
     steering_direction_request = dat[5] & 0x03  
-    unkown = dat[2]
+    trqlim = dat[2]
   
   # Sum of all bytes, carry ignored.
-  s = (unkown + steering_direction_request + steer_angle_request + (steer_angle_request >> 8)) & 0xFF
+  s = (trqlim + steering_direction_request + steer_angle_request + (steer_angle_request >> 8)) & 0xFF
   # Checksum is inverted sum of all bytes
   return s ^ 0xFF
 
@@ -50,7 +77,7 @@ def create_steering_control(packer, frame, car_fingerprint, SteerCommand, FSMInf
   values = {
     "LKAAngleReq": SteerCommand.angle_request,
     "LKASteerDirection": SteerCommand.steer_direction,
-    "Unkown": SteerCommand.unkown,
+    "TrqLim": SteerCommand.trqlim,
   }
   
   # Set car specific parameters
