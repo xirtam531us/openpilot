@@ -199,8 +199,8 @@ class CarController():
     if(self.doDTCRequests):
       if(frame % 100 == 0) and (not self.clearDtcs):
         # Request diagnostic codes, 2 Hz
-        #can_sends.append(self.packer.make_can_msg("diagFSMReq", 2, self.diagRequest))
-        can_sends.append(self.packer.make_can_msg("diagGlobalReq", 2, self.diagRequest))
+        can_sends.append(self.packer.make_can_msg("diagFSMReq", 2, self.diagRequest))
+        #can_sends.append(self.packer.make_can_msg("diagGlobalReq", 2, self.diagRequest))
         can_sends.append(self.packer.make_can_msg("diagGlobalReq", 0, self.diagRequest))
         #can_sends.append(self.packer.make_can_msg("diagPSCMReq", 0, self.diagRequest))
         #can_sends.append(self.packer.make_can_msg("diagCEMReq", 0, self.diagRequest))

@@ -43,7 +43,7 @@ class CarInterface(CarInterfaceBase):
       
       # Steering settings - tuning parameters for lateral control.
       ret.steerRateCost = 1. # Used in pathplanner for punishing? Steering movements?
-      ret.steerActuatorDelay = 0.1 # Actuator delay from input to output.
+      ret.steerActuatorDelay = 0.12 # Actuator delay from input to output.
       
       # No PID control used. Set to 0, otherwise pid loop crashes.
       #ret.steerMaxBP = [0.] # m/s
