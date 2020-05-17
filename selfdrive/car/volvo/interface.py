@@ -12,7 +12,6 @@ class CarInterface(CarInterfaceBase):
     super().__init__(CP, CarController, CarState)
     
     # Create variables
-    self.low_speed_alert = False 
     self.cruiseState_enabled_prev = False
     self.buttonStatesPrev = BUTTON_STATES.copy()
     
@@ -24,28 +23,29 @@ class CarInterface(CarInterfaceBase):
   def get_params(candidate, fingerprint=gen_empty_fingerprint(), has_relay=False, car_fw=[]):
     ret = CarInterfaceBase.get_std_params(candidate, fingerprint, has_relay)
     
+    # Volvo port is a community feature, since we don't own one to test
+    ret.communityFeature = True
+
     # Set specific paramter
     if candidate in PLATFORM.C1:
-      ret.safetyParam = 1
       ret.safetyModel = car.CarParams.SafetyModel.volvoC1
     if candidate in PLATFORM.EUCD:
-      ret.safetyParam = 2
       ret.safetyModel = car.CarParams.SafetyModel.volvoEUCD
-   
+
     if candidate:
        # Set common parameters
       ret.carName = "volvo"
-      ret.radarOffCan = True  # No radar objects on can
+      ret.radarOffCan = True        # No radar objects on can
       ret.steerControlType = car.CarParams.SteerControlType.angle
-      #ret.steerLimitAlert = False # Do this do anything?
-      #ret.minSteerSpeed = 30. * CV.KPH_TO_MS
-      ret.enableCamera = True # force openpilot to fake the stock camera
+      #ret.steerLimitAlert = False   # Do this do anything?
+      ret.minSteerSpeed = 3. * CV.KPH_TO_MS
+      ret.enableCamera = True       # Will not set safety mode if not True
       
       # Steering settings - tuning parameters for lateral control.
-      ret.steerRateCost = 1. # Used in pathplanner for punishing? Steering movements?
+      ret.steerRateCost = 1. # Used in pathplanner for punishing? Steering derivative?
       ret.steerActuatorDelay = 0.12 # Actuator delay from input to output.
       
-      # No PID control used. Set to 0, otherwise pid loop crashes.
+      # No PID control used. Set to a value, otherwise pid loop crashes.
       #ret.steerMaxBP = [0.] # m/s
       #ret.steerMaxV = [1.]
       ret.lateralTuning.pid.kpBP = [0.]

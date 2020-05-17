@@ -41,9 +41,14 @@ class CarControllerParams():
   STEER_LEFT = 2
   STEER = 3
 
-  # maximum degress offset on request from current steering angle
-  MAX_ACT_ANGLE_REQUEST_DIFF = 5
+  # maximum degress offset/rate of change on request from current/last steering angle
+  MAX_ACT_ANGLE_REQUEST_DIFF = 25   # A bigger angle difference will trigger disengage.
   STEER_ANGLE_DELTA_REQ_DIFF = 0.25
+
+  # Limits  
+  ANGLE_DELTA_BP = [0., 5., 15.]
+  ANGLE_DELTA_V = [1.5, .8, .15]     # windup limit
+  ANGLE_DELTA_VU = [1.5, 1., 0.4]   # unwind limit
 
   # don't change steer direction inside deadzone, 
   # might not be needed in future after discovering STEER command.
