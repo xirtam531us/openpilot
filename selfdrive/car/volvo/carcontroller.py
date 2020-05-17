@@ -1,4 +1,4 @@
-from common.numpy_fast import clip
+from common.numpy_fast import clip, interp
 from selfdrive.car.volvo.values import CAR, PLATFORM, DBC, CarControllerParams as CCP 
 from selfdrive.car.volvo import volvocan
 from opendbc.can.packer import CANPacker
@@ -33,9 +33,9 @@ class CarController():
     
     # Diag
     self.doDTCRequests = True # Turn on and off DTC requests
-    self.checkPN = True # Check partnumbers
-    self.clearDtcs = True # Set false to stop sending diagnostic requests 
-    self.timeout = 0
+    self.checkPN = True       # Check partnumbers
+    self.clearDtcs = True     # Set false to stop sending diagnostic requests 
+    self.timeout = 0          # Set to zero as init
     self.diagRequest = { 
       "byte0": 0x03,
       "byte1": 0x19,
@@ -57,10 +57,10 @@ class CarController():
       }
 
     # Part number
-    self.cnt = 0 # Init at 0 always
-    self.sndNxtFrame = 0 # Init at low value 
+    self.cnt = 0          # Init at 0 always
+    self.sndNxtFrame = 0  # Init at low value 
     self.dictKeys = ["byte"+str(x) for x in range(8)]
-    startdid = 0xf1a1
+    startdid = 0xf1a1     # Start with this DID (Data IDentifier, read UDS Spec for more info)
     self.dids = [x for x in range(startdid, startdid+9)]
 
     # Setup detection helper. Routes commands to
@@ -147,9 +147,17 @@ class CarController():
     # run at 50hz
     if (frame % 2 == 0):
       
-      if enabled and CS.out.vEgo > 3.27: #self.CP.minSteerSpeed:
+      if enabled and CS.out.vEgo > self.CP.minSteerSpeed:
         current_steer_angle = CS.out.steeringAngle
         self.SteerCommand.angle_request = actuators.steerAngle # Desired value from pathplanner
+        
+        # # windup slower
+        if self.angle_request_prev * self.SteerCommand.angle_request > 0. and abs(self.SteerCommand.angle_request) > abs(self.angle_request_prev):
+          angle_rate_lim = interp(CS.out.vEgo, CCP.ANGLE_DELTA_BP, CCP.ANGLE_DELTA_V)
+        else:
+          angle_rate_lim = interp(CS.out.vEgo, CCP.ANGLE_DELTA_BP, CCP.ANGLE_DELTA_VU)
+
+        self.SteerCommand.angle_request = clip(self.SteerCommand.angle_request, self.angle_request_prev - angle_rate_lim, self.angle_request_prev + angle_rate_lim)
 
         # Create trqlim from angle request (before constraints)
         #self.SteerCommand.trqlim = clip(self.SteerCommand.angle_request*5, -127, 127)
@@ -158,20 +166,19 @@ class CarController():
         # MIGHT be needed for EUCD
         #self.SteerCommand.steer_direction = CCP.STEER_RIGHT if current_steer_angle > self.SteerCommand.angle_request else CCP.STEER_LEFT
         #self.SteerCommand.steer_direction = self.dir_change(self.SteerCommand.steer_direction, current_steer_angle-self.SteerCommand.angle_request) # Filter the direction change 
-        
         self.SteerCommand.steer_direction = CCP.STEER
 
         # get maximum allowed steering angle request
-        max_right, max_left, max_delta_right, max_delta_left = self.max_angle_req(current_steer_angle, self.angle_request_prev, CCP)
+        #max_right, max_left, max_delta_right, max_delta_left = self.max_angle_req(current_steer_angle, self.angle_request_prev, CCP)
         
         # set clipped lka angle request
         # activating from disabled is allowed to bypass the delta change requirement
-        self.SteerCommand.angle_request = clip(self.SteerCommand.angle_request, max_delta_right, max_delta_left) if self.acc_enabled_prev else self.SteerCommand.angle_request
-        self.SteerCommand.angle_request = clip(self.SteerCommand.angle_request, max_right, max_left)
+        #self.SteerCommand.angle_request = clip(self.SteerCommand.angle_request, max_delta_right, max_delta_left) if self.acc_enabled_prev else self.SteerCommand.angle_request
+        #self.SteerCommand.angle_request = clip(self.SteerCommand.angle_request, max_right, max_left)
 
       else:
         self.SteerCommand.steer_direction = CCP.STEER_NO
-        self.SteerCommand.angle_request = 0
+        self.SteerCommand.angle_request = clip(CS.out.steeringAngle, -359.95, 359.90)  # Cap values at max min values (Cap 2 steps from max min). Max=359.99445, Min=-360.0384 
         # set trqlim field to fix value
         self.SteerCommand.trqlim = 0
 
@@ -180,10 +187,10 @@ class CarController():
       self.acc_enabled_prev = enabled
       self.angle_request_prev = self.SteerCommand.angle_request
       if self.SteerCommand.steer_direction == CCP.STEER_RIGHT or self.SteerCommand.steer_direction == CCP.STEER_LEFT:
-        self.des_steer_direction_prev = self.SteerCommand.steer_direction
+        self.des_steer_direction_prev = self.SteerCommand.steer_direction   # Used for dir_change function
       
       # Manipulate data from servo to FSM
-      # based on if we are steering or not
+      # Avoid fault codes, that will stop LKA
       can_sends.append(volvocan.manipulateServo(self.packer, self.CP.carFingerprint, CS))
     
       # send can, add to list.
