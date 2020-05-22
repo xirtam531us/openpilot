@@ -2,6 +2,7 @@ from common.numpy_fast import clip, interp
 from selfdrive.car.volvo.values import CAR, PLATFORM, DBC, CarControllerParams as CCP 
 from selfdrive.car.volvo import volvocan
 from opendbc.can.packer import CANPacker
+from collections import deque
 
 class SteerCommand:
   angle_request = 0
@@ -21,7 +22,7 @@ class CarController():
     # Direction change statemachine
     self.UNBLOCKED = 0
     self.BLOCKED = 1
-    self.BLOCK_LEN = 4 # Block steer direction change for x samples
+    self.BLOCK_LEN = 4  # Block steer direction change for x samples
 
     self.dir_state = 0
     self.block_steering = 0
@@ -30,12 +31,14 @@ class CarController():
 
     # SteerCommand
     self.SteerCommand = SteerCommand
-    
+    self.trq_fifo = deque([])  
+    self.fault_frame = -200
+
     # Diag
-    self.doDTCRequests = True # Turn on and off DTC requests
-    self.checkPN = True       # Check partnumbers
-    self.clearDtcs = True     # Set false to stop sending diagnostic requests 
-    self.timeout = 0          # Set to zero as init
+    self.doDTCRequests = True  # Turn on and off DTC requests
+    self.checkPN = True        # Check partnumbers
+    self.clearDtcs = False     # Set false to stop sending diagnostic requests 
+    self.timeout = 0           # Set to zero as init
     self.diagRequest = { 
       "byte0": 0x03,
       "byte1": 0x19,
@@ -160,8 +163,9 @@ class CarController():
         self.SteerCommand.angle_request = clip(self.SteerCommand.angle_request, self.angle_request_prev - angle_rate_lim, self.angle_request_prev + angle_rate_lim)
 
         # Create trqlim from angle request (before constraints)
-        #self.SteerCommand.trqlim = clip(self.SteerCommand.angle_request*5, -127, 127)
-        self.SteerCommand.trqlim = -127 if current_steer_angle > self.SteerCommand.angle_request else 127
+        self.SteerCommand.trqlim = 0
+        #self.SteerCommand.trqlim = clip(self.SteerCommand.angle_request*2, -127, 127)
+        #self.SteerCommand.trqlim = -127 if current_steer_angle > self.SteerCommand.angle_request else 127
 
         # MIGHT be needed for EUCD
         #self.SteerCommand.steer_direction = CCP.STEER_RIGHT if current_steer_angle > self.SteerCommand.angle_request else CCP.STEER_LEFT
@@ -183,11 +187,31 @@ class CarController():
         self.SteerCommand.trqlim = 0
 
       
+      # Count no of consequtive samples of zero torque by lka.
+      # Try to recover, blocking steering request for 2 seconds.
+      if not enabled:
+        self.trq_fifo.clear()
+        self.fault_frame = -200
+      else:
+        self.trq_fifo.append(CS.PSCMInfo.LKATorque)
+        if len(self.trq_fifo) > CCP.N_ZERO_TRQ:
+          self.trq_fifo.popleft()
+
+      if (self.trq_fifo.count(0) >= CCP.N_ZERO_TRQ) and (self.fault_frame == -200):
+        self.fault_frame = frame+100
+
+      if enabled and (frame < self.fault_frame):
+        self.SteerCommand.steer_direction = CCP.STEER_NO
+
+      if frame > self.fault_frame+8:  # Ignore steerWarning for another 8 samples.
+        self.fault_frame = -200     
+
+
       # update stored values
       self.acc_enabled_prev = enabled
       self.angle_request_prev = self.SteerCommand.angle_request
       if self.SteerCommand.steer_direction == CCP.STEER_RIGHT or self.SteerCommand.steer_direction == CCP.STEER_LEFT:
-        self.des_steer_direction_prev = self.SteerCommand.steer_direction   # Used for dir_change function
+        self.des_steer_direction_prev = self.SteerCommand.steer_direction  # Used for dir_change function
       
       # Manipulate data from servo to FSM
       # Avoid fault codes, that will stop LKA
@@ -232,16 +256,15 @@ class CarController():
           did = [0x03, 0x22, (self.dids[self.cnt] & 0xff00)>>8, self.dids[self.cnt] & 0x00ff] # Create diagnostic command
           did.extend([0]*(8-len(did))) 
           diagReq = dict(zip(self.dictKeys,did))
-
           can_sends.append(self.packer.make_can_msg("diagFSMReq", 2, diagReq))
           can_sends.append(self.packer.make_can_msg("diagCEMReq", 0, diagReq))
           can_sends.append(self.packer.make_can_msg("diagPSCMReq", 0, diagReq))
           can_sends.append(self.packer.make_can_msg("diagCVMReq", 0, diagReq))
           self.cnt += 1
-          self.timeout = frame+5 # When to send flowControl
-          self.sndNxtFrame = self.timeout+5 # When to send next part number request
+          self.timeout = frame+5             # When to send flowControl
+          self.sndNxtFrame = self.timeout+5  # When to send next part number request
 
-        elif True: # Stop when list has been looped thru.
+        elif True:                           # Stop when list has been looped thru.
           self.checkPN = False
 
       # Clear DTCs in FSM on start

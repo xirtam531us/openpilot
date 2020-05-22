@@ -3,35 +3,14 @@ from selfdrive.car.volvo.values import PLATFORM
 def cancelACC(packer, car_fingerprint, CS):
   # Send cancel button to disengage ACC
   # TODO add support for EUCD
-  """
-  msg = {
-    "ACCSetBtn": CS.CCBtns.ACCSetBtn,
-    "ACCResumeBtn": CS.CCBtns.ACCResumeBtn,
-    "ACCMinusBtn": CS.CCBtns.ACCMinusBtn,
-    "TimeGapIncreaseBtn": CS.CCBtns.TimeGapIncreaseBtn,
-    "TimeGapDecreaseBtn": CS.CCBtns.TimeGapDecreaseBtn,
-  }"""
   msg = {}
 
   if car_fingerprint in PLATFORM.C1:
     msg["ACCStopBtn"] = 1
-    """msg["ACCOnOffBtn"] = CS.CCBtns.ACCOnOffBtn
-    msg["byte0"] = CS.CCBtns.byte0
-    msg["byte1"] = CS.CCBtns.byte1
-    msg["byte2"] = CS.CCBtns.byte2
-    msg["byte3"] = CS.CCBtns.byte3
-    msg["byte4"] = CS.CCBtns.byte4
-    msg["byte5"] = CS.CCBtns.byte5
-    msg["byte6"] = CS.CCBtns.byte6
-    msg["B7b0"] = CS.CCBtns.B7b0
-    msg["B7b1"] = CS.CCBtns.B7b1
-    msg["B7b3"] = CS.CCBtns.B7b3
-    msg["B7b6"] = CS.CCBtns.B7b6"""
   
   elif car_fingerprint in PLATFORM.EUCD:
     msg["ACCOnOffBtn"] = 1
     msg["AccOnOffBtnInv"] = 0
-
 
   return packer.make_can_msg("CCButtons", 0, msg)
 
