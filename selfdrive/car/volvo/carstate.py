@@ -4,8 +4,8 @@ from selfdrive.config import Conversions as CV
 from selfdrive.car.interfaces import CarStateBase
 from opendbc.can.parser import CANParser
 from opendbc.can.can_define import CANDefine
-from selfdrive.car.volvo.values import CAR, PLATFORM, DBC, BUTTON_STATES 
-from selfdrive.kegman_conf import kegman_conf
+from selfdrive.car.volvo.values import CAR, PLATFORM, DBC, BUTTON_STATES, CarControllerParams as CCP
+from collections import deque
 
 class diagInfo():
   def __init__(self):
@@ -88,12 +88,12 @@ class CCButtons():
 class CarState(CarStateBase):
   def __init__(self, CP):
     super().__init__(CP)
-    # Live tuning
-    self.kegman = kegman_conf()
     self.diag = diagInfo() 
     self.PSCMInfo = PSCMInfo() 
     self.FSMInfo = FSMInfo()
     self.CCBtns = CCButtons()
+
+    self.trq_fifo = deque([])
 
     self.can_define = CANDefine(DBC[CP.carFingerprint]['pt'])
     self.buttonStates = BUTTON_STATES.copy()
@@ -128,7 +128,7 @@ class CarState(CarStateBase):
       can_gear = int(cp.vl["TCM0"]["GearShifter"])
       ret.gearShifter = self.parse_gear_shifter(self.shifter_values.get(can_gear, None))
     elif self.CP.carFingerprint in PLATFORM.EUCD:
-      ret.gearShifter = self.parse_gear_shifter('D')
+      ret.gearShifter = self.parse_gear_shifter('D') # TODO: Gear EUCD
 
     # Belt and doors
     ret.doorOpen = False
@@ -178,17 +178,6 @@ class CarState(CarStateBase):
     # ACC Buttons
     if self.CP.carFingerprint in PLATFORM.C1:
       self.CCBtns.ACCStopBtn = bool(cp.vl["CCButtons"]['ACCStopBtn'])
-      self.CCBtns.byte0 = int(cp.vl["CCButtons"]['byte0'])
-      self.CCBtns.byte1 = int(cp.vl["CCButtons"]['byte1'])
-      self.CCBtns.byte2 = int(cp.vl["CCButtons"]['byte2'])
-      self.CCBtns.byte3 = int(cp.vl["CCButtons"]['byte3'])
-      self.CCBtns.byte4 = int(cp.vl["CCButtons"]['byte4'])
-      self.CCBtns.byte5 = int(cp.vl["CCButtons"]['byte5'])
-      self.CCBtns.byte6 = int(cp.vl["CCButtons"]['byte6'])
-      self.CCBtns.B7b0 = bool(cp.vl["CCButtons"]['B7b0'])
-      self.CCBtns.B7b1 = bool(cp.vl["CCButtons"]['B7b1'])
-      self.CCBtns.B7b3 = bool(cp.vl["CCButtons"]['B7b3'])
-      self.CCBtns.B7b6 = bool(cp.vl["CCButtons"]['B7b6'])
   
     # PSCMInfo
     # Common
@@ -199,7 +188,7 @@ class CarState(CarStateBase):
     self.PSCMInfo.LKAActive = int(cp.vl['PSCM1']['LKAActive']) 
     self.PSCMInfo.SteeringAngleServo = int(cp.vl['PSCM1']['SteeringAngleServo']) 
 
-    # Specifics  
+    # Platform specific  
     if self.CP.carFingerprint in PLATFORM.C1:
       self.PSCMInfo.byte3 = int(cp.vl['PSCM1']['byte3']) 
     elif self.CP.carFingerprint in PLATFORM.EUCD:
@@ -207,12 +196,12 @@ class CarState(CarStateBase):
 
     # FSMInfo
     if self.CP.carFingerprint in PLATFORM.C1:
+      # TODO Why use these? In future shold be ok to delete.
       self.FSMInfo.SET_X_E3 = int(cp_cam.vl['FSM1']['SET_X_E3']) 
       self.FSMInfo.SET_X_B4 = int(cp_cam.vl['FSM1']['SET_X_B4']) 
       self.FSMInfo.SET_X_08 = int(cp_cam.vl['FSM1']['SET_X_08']) 
       self.FSMInfo.SET_X_02 = int(cp_cam.vl['FSM1']['SET_X_02']) 
       self.FSMInfo.SET_X_25 = int(cp_cam.vl['FSM1']['SET_X_25']) 
-      # Why use these? TODO
       self.FSMInfo.TrqLim = int(cp_cam.vl['FSM1']['TrqLim']) 
       self.FSMInfo.LKAAngleReq = int(cp_cam.vl['FSM1']['LKAAngleReq']) 
       self.FSMInfo.Checksum = int(cp_cam.vl['FSM1']['Checksum']) 
@@ -223,7 +212,21 @@ class CarState(CarStateBase):
       self.FSMInfo.SET_X_02 = int(cp_cam.vl['FSM2']['SET_X_02']) 
       self.FSMInfo.SET_X_A4 = int(cp_cam.vl['FSM2']['SET_X_A4']) 
       self.FSMInfo.SET_X_10 = int(cp_cam.vl['FSM2']['SET_X_10']) 
-      
+
+    # Check if servo stops responding when acc is active.
+    # If N_ZERO_TRQ 0 torque samples in a row is detected,
+    # set steerUnavailable. Same logic in carcontroller to
+    # decide when to start to recover steering.
+    if not ret.cruiseState.enabled:
+      self.trq_fifo.clear()
+      ret.steerWarning = False
+    
+    else:
+      self.trq_fifo.append(self.PSCMInfo.LKATorque)
+      ret.steerWarning = True if (self.trq_fifo.count(0) >= CCP.N_ZERO_TRQ*2) else False  # *2, runs at 100hz
+      if len(self.trq_fifo) > CCP.N_ZERO_TRQ*2:                                           # vs 50hz in CarController
+        self.trq_fifo.popleft()
+
     return ret
 
   @staticmethod
@@ -283,17 +286,6 @@ class CarState(CarStateBase):
 
       # Buttons
       signals.append(('ACCStopBtn', "CCButtons", 0))
-      signals.append(('byte0', "CCButtons", 0))
-      signals.append(('byte1', "CCButtons", 0))
-      signals.append(('byte2', "CCButtons", 0))
-      signals.append(('byte3', "CCButtons", 0))
-      signals.append(('byte4', "CCButtons", 0))
-      signals.append(('byte5', "CCButtons", 0))
-      signals.append(('byte6', "CCButtons", 0))
-      signals.append(('B7b0', "CCButtons", 0))
-      signals.append(('B7b1', "CCButtons", 0))
-      signals.append(('B7b3', "CCButtons", 0))
-      signals.append(('B7b6', "CCButtons", 0))
      
       # Checks 
       checks.append(("BrakeMessages", 50))
