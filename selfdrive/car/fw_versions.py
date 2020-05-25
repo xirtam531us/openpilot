@@ -104,6 +104,7 @@ REQUESTS = [
   ),
   # Volvo
   (
+    "volvo",
     [VOLVO_VERSION_REQUEST],
     [VOLVO_VERSION_RESPONSE]
   ),

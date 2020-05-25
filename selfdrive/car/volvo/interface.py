@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 from cereal import car
-from common.params import Params
 from selfdrive.config import Conversions as CV
-from selfdrive.controls.lib.drive_helpers import create_event, EventTypes as ET
 from selfdrive.car.volvo.values import CAR, PLATFORM, BUTTON_STATES
 from selfdrive.car import STD_CARGO_KG, scale_rot_inertia, scale_tire_stiffness, gen_empty_fingerprint
 from selfdrive.car.interfaces import CarInterfaceBase
+
+EventName = car.CarEvent.EventName
 
 class CarInterface(CarInterfaceBase):
   def __init__(self, CP, CarController, CarState):
@@ -78,7 +78,6 @@ class CarInterface(CarInterfaceBase):
   def update(self, c, can_strings):
     canMonoTimes = []
     buttonEvents = []
-    params = Params()
    
     # Process the most recent CAN message traffic, and check for validity
     self.cp.update_strings(can_strings)
@@ -101,13 +100,13 @@ class CarInterface(CarInterfaceBase):
     
     # Engagement and longitudinal control using stock ACC. Make sure OP is
     # disengaged if stock ACC is disengaged.
-    if not ret.cruiseState.enabled:
-      events.append(create_event('pcmDisable', [ET.USER_DISABLE]))
+    #if not ret.cruiseState.enabled:
+    #  events.add(EventName.)
     # Attempt OP engagement only on rising edge of stock ACC engagement.
-    elif not self.cruiseState_enabled_prev:
-      events.append(create_event('pcmEnable', [ET.ENABLE]))
+    #elif not self.cruiseState_enabled_prev:
+    #  events.add(EventName.)
 
-    ret.events = events
+    ret.events = events.to_msg()
     ret.buttonEvents = buttonEvents
     ret.canMonoTimes = canMonoTimes
 

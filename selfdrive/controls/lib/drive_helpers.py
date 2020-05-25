@@ -3,7 +3,6 @@ from selfdrive.config import Conversions as CV
 from cereal import car
 
 # kph
-kegman = kegman_conf()
 V_CRUISE_MAX = 144
 V_CRUISE_MIN = 8
 V_CRUISE_DELTA = 8
