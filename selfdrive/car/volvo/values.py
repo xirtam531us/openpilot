@@ -46,9 +46,9 @@ class CarControllerParams():
   STEER_ANGLE_DELTA_REQ_DIFF = 0.25
 
   # Limits  
-  ANGLE_DELTA_BP = [0., 5., 15.]
-  ANGLE_DELTA_V = [1.5, .8, .15]     # windup limit
-  ANGLE_DELTA_VU = [1.5, 1., 0.4]   # unwind limit
+  ANGLE_DELTA_BP = [0., 5., 15., 27., 36.]   # 0, 18, 54, 97.2, 129.6 km/h
+  ANGLE_DELTA_V = [2, 1.2, .15, .1, .08]     # windup limit
+  ANGLE_DELTA_VU = [3, 1.8, 0.4, .2, .1]   # unwind limit
 
   # number of 0 torque samples in a row before trying to restore steering.
   N_ZERO_TRQ = 10
