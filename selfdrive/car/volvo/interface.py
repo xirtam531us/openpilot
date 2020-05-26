@@ -26,40 +26,46 @@ class CarInterface(CarInterfaceBase):
     # Volvo port is a community feature, since we don't own one to test
     ret.communityFeature = True
 
-    # Set specific paramter
     if candidate in PLATFORM.C1:
       ret.safetyModel = car.CarParams.SafetyModel.volvoC1
-    if candidate in PLATFORM.EUCD:
-      ret.safetyModel = car.CarParams.SafetyModel.volvoEUCD
+      
+      if candidate == CAR.V40:
+        # Technical specifications
+        ret.mass = 1610 + STD_CARGO_KG
+        ret.wheelbase = 2.647
+        ret.centerToFront = ret.wheelbase * 0.44
+        ret.steerRatio = 14.7 
 
-    if candidate:
-       # Set common parameters
-      ret.carName = "volvo"
-      ret.radarOffCan = True        # No radar objects on can
-      ret.steerControlType = car.CarParams.SteerControlType.angle
-      #ret.steerLimitAlert = False   # Do this do anything?
-      ret.minSteerSpeed = 3. * CV.KPH_TO_MS
-      ret.enableCamera = True       # Will not set safety mode if not True
+    elif candidate in PLATFORM.EUCD:
+      ret.safetyModel = car.CarParams.SafetyModel.volvoEUCD
       
-      # Steering settings - tuning parameters for lateral control.
-      ret.steerRateCost = 1. # Used in pathplanner for punishing? Steering derivative?
-      ret.steerActuatorDelay = 0.12 # Actuator delay from input to output.
-      
-      # No PID control used. Set to a value, otherwise pid loop crashes.
-      #ret.steerMaxBP = [0.] # m/s
-      #ret.steerMaxV = [1.]
-      ret.lateralTuning.pid.kpBP = [0.]
-      ret.lateralTuning.pid.kiBP = [0.]
-      # Tuning factors
-      ret.lateralTuning.pid.kf = 0.0
-      ret.lateralTuning.pid.kpV  = [0.0]
-      ret.lateralTuning.pid.kiV = [0.0]
-      
-      # Technical specifications
-      ret.mass = 1610 + STD_CARGO_KG
-      ret.wheelbase = 2.647
-      ret.centerToFront = ret.wheelbase * 0.44
-      ret.steerRatio = 14.7
+      if candidate == CAR.V60:
+        ret.mass = 1750 + STD_CARGO_KG  # All data found at https://www.media.volvocars.com/global/en-gb/models/old-v60/2014/specifications
+        ret.wheelbase = 2.776 
+        ret.centerToFront = ret.wheelbase * 0.44
+        ret.steerRatio = 15
+
+    # Common parameters
+    ret.carName = "volvo"
+    ret.enableCamera = True         # Will not set safety mode if not True
+    ret.radarOffCan = True          # No radar objects on can
+
+    # Steering settings - tuning parameters for lateral control.
+    #ret.steerLimitAlert = True     # Do this do anything?
+    ret.steerControlType = car.CarParams.SteerControlType.angle
+    ret.minSteerSpeed = 1. * CV.KPH_TO_MS
+    ret.steerRateCost = 1.          # Used in pathplanner for punishing? Steering derivative?
+    ret.steerActuatorDelay = 0.12   # Actuator delay from input to output.
+    
+    # No PID control used. Set to a value, otherwise pid loop crashes.
+    #ret.steerMaxBP = [0.] # m/s
+    #ret.steerMaxV = [1.]
+    ret.lateralTuning.pid.kpBP = [0.]
+    ret.lateralTuning.pid.kiBP = [0.]
+    # Tuning factors
+    ret.lateralTuning.pid.kf = 0.0
+    ret.lateralTuning.pid.kpV  = [0.0]
+    ret.lateralTuning.pid.kiV = [0.0]
           
     # Assuming all is automatic
     ret.transmissionType = car.CarParams.TransmissionType.automatic

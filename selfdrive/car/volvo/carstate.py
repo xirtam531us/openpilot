@@ -217,15 +217,14 @@ class CarState(CarStateBase):
     # If N_ZERO_TRQ 0 torque samples in a row is detected,
     # set steerUnavailable. Same logic in carcontroller to
     # decide when to start to recover steering.
-    if not ret.cruiseState.enabled:
-      self.trq_fifo.clear()
-      ret.steerWarning = False
-    
-    else:
+    if ret.cruiseState.enabled and ret.vEgo > self.CP.minSteerSpeed:
       self.trq_fifo.append(self.PSCMInfo.LKATorque)
       ret.steerWarning = True if (self.trq_fifo.count(0) >= CCP.N_ZERO_TRQ*2) else False  # *2, runs at 100hz
       if len(self.trq_fifo) > CCP.N_ZERO_TRQ*2:                                           # vs 50hz in CarController
         self.trq_fifo.popleft()
+    else:
+      self.trq_fifo.clear()
+      ret.steerWarning = False
 
     return ret
 

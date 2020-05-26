@@ -163,9 +163,9 @@ class CarController():
         self.SteerCommand.angle_request = clip(self.SteerCommand.angle_request, self.angle_request_prev - angle_rate_lim, self.angle_request_prev + angle_rate_lim)
 
         # Create trqlim from angle request (before constraints)
-        self.SteerCommand.trqlim = 0
+        # self.SteerCommand.trqlim = 0
         #self.SteerCommand.trqlim = clip(self.SteerCommand.angle_request*2, -127, 127)
-        #self.SteerCommand.trqlim = -127 if current_steer_angle > self.SteerCommand.angle_request else 127
+        self.SteerCommand.trqlim = -127 if current_steer_angle > self.SteerCommand.angle_request else 127
 
         # MIGHT be needed for EUCD
         #self.SteerCommand.steer_direction = CCP.STEER_RIGHT if current_steer_angle > self.SteerCommand.angle_request else CCP.STEER_LEFT
@@ -189,13 +189,13 @@ class CarController():
       
       # Count no of consequtive samples of zero torque by lka.
       # Try to recover, blocking steering request for 2 seconds.
-      if not enabled:
-        self.trq_fifo.clear()
-        self.fault_frame = -200
-      else:
+      if enabled and CS.out.vEgo > self.CP.minSteerSpeed:
         self.trq_fifo.append(CS.PSCMInfo.LKATorque)
         if len(self.trq_fifo) > CCP.N_ZERO_TRQ:
           self.trq_fifo.popleft()
+      else:
+        self.trq_fifo.clear()
+        self.fault_frame = -200
 
       if (self.trq_fifo.count(0) >= CCP.N_ZERO_TRQ) and (self.fault_frame == -200):
         self.fault_frame = frame+100
