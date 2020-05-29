@@ -1,9 +1,9 @@
 [submodule "panda"]
 	path = panda
-	url = ../../commaai/panda.git
+	url = ../../danielzmod/panda.git
 [submodule "opendbc"]
 	path = opendbc
-	url = ../../commaai/opendbc.git
+	url = ../../danielzmod/opendbc.git
 [submodule "laika_repo"]
 	path = laika_repo
 	url = ../../commaai/laika.git
@@ -12,7 +12,7 @@
 	url = ../../commaai/openpilot-apks.git
 [submodule "cereal"]
 	path = cereal
-	url = ../../commaai/cereal.git
+	url = ../../danielzmod/cereal.git
 
 [submodule "rednose_repo"]
 	path = rednose_repo
