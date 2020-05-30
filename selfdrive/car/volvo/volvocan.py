@@ -10,7 +10,7 @@ def cancelACC(packer, car_fingerprint, CS):
   
   elif car_fingerprint in PLATFORM.EUCD:
     msg["ACCOnOffBtn"] = 1
-    msg["AccOnOffBtnInv"] = 0
+    msg["ACCOnOffBtnInv"] = 0
 
   return packer.make_can_msg("CCButtons", 0, msg)
 
@@ -19,7 +19,6 @@ def manipulateServo(packer, car_fingerprint, CS):
   # Manipulate data from servo to FSM
   # Zero active and torque bits.
   msg = {
-      "LKAActive" : (CS.PSCMInfo.LKAActive & 0xFD),
       "LKATorque" : 0,
       "SteeringAngleServo" : CS.PSCMInfo.SteeringAngleServo,
       "byte0" : CS.PSCMInfo.byte0,
@@ -28,8 +27,10 @@ def manipulateServo(packer, car_fingerprint, CS):
   }
 
   if car_fingerprint in PLATFORM.C1: 
+    msg["LKAActive"] = CS.PSCMInfo.LKAActive & 0xFD
     msg["byte3"] = CS.PSCMInfo.byte3
   elif car_fingerprint in PLATFORM.EUCD:
+    msg["LKAActive"] = CS.PSCMInfo.LKAActive
     msg["SteeringWheelRateOfChange"] = CS.PSCMInfo.SteeringWheelRateOfChange
 
   return packer.make_can_msg("PSCM1", 2, msg)

@@ -36,9 +36,9 @@ class CarController():
 
     # Diag
     self.doDTCRequests = True  # Turn on and off DTC requests
-    self.checkPN = True        # Check partnumbers
-    self.clearDtcs = False     # Set false to stop sending diagnostic requests 
-    self.timeout = 0           # Set to zero as init
+    self.checkPN = False       # Check partnumbers
+    self.clearDtcs = True      # Set false to stop sending diagnostic requests 
+    self.timeout = 0           # Set to 0 as init
     self.diagRequest = { 
       "byte0": 0x03,
       "byte1": 0x19,
@@ -150,7 +150,9 @@ class CarController():
     # run at 50hz
     if (frame % 2 == 0):
       
-      if enabled and CS.out.vEgo > self.CP.minSteerSpeed:
+      if enabled                                  \
+          and CS.out.vEgo > self.CP.minSteerSpeed \
+          and self.CP.carFingerprint == PLATFORM.C1:
         current_steer_angle = CS.out.steeringAngle
         self.SteerCommand.angle_request = actuators.steerAngle # Desired value from pathplanner
         
@@ -189,22 +191,23 @@ class CarController():
       
       # Count no of consequtive samples of zero torque by lka.
       # Try to recover, blocking steering request for 2 seconds.
-      if enabled and CS.out.vEgo > self.CP.minSteerSpeed:
-        self.trq_fifo.append(CS.PSCMInfo.LKATorque)
-        if len(self.trq_fifo) > CCP.N_ZERO_TRQ:
-          self.trq_fifo.popleft()
-      else:
-        self.trq_fifo.clear()
-        self.fault_frame = -200
+      if self.CP.carFingerprint in PLATFORM.C1:
+        if enabled and CS.out.vEgo > self.CP.minSteerSpeed:
+          self.trq_fifo.append(CS.PSCMInfo.LKATorque)
+          if len(self.trq_fifo) > CCP.N_ZERO_TRQ:
+            self.trq_fifo.popleft()
+        else:
+          self.trq_fifo.clear()
+          self.fault_frame = -200
 
-      if (self.trq_fifo.count(0) >= CCP.N_ZERO_TRQ) and (self.fault_frame == -200):
-        self.fault_frame = frame+100
+        if (self.trq_fifo.count(0) >= CCP.N_ZERO_TRQ) and (self.fault_frame == -200):
+          self.fault_frame = frame+100
 
-      if enabled and (frame < self.fault_frame):
-        self.SteerCommand.steer_direction = CCP.STEER_NO
+        if enabled and (frame < self.fault_frame):
+          self.SteerCommand.steer_direction = CCP.STEER_NO
 
-      if frame > self.fault_frame+8:  # Ignore steerWarning for another 8 samples.
-        self.fault_frame = -200     
+        if frame > self.fault_frame+8:  # Ignore steerWarning for another 8 samples.
+          self.fault_frame = -200     
 
 
       # update stored values
@@ -256,6 +259,8 @@ class CarController():
           did = [0x03, 0x22, (self.dids[self.cnt] & 0xff00)>>8, self.dids[self.cnt] & 0x00ff] # Create diagnostic command
           did.extend([0]*(8-len(did))) 
           diagReq = dict(zip(self.dictKeys,did))
+          #can_sends.append(self.packer.make_can_msg("diagGlobalReq", 2, diagReq))
+          #can_sends.append(self.packer.make_can_msg("diagGlobalReq", 0, diagReq))
           can_sends.append(self.packer.make_can_msg("diagFSMReq", 2, diagReq))
           can_sends.append(self.packer.make_can_msg("diagCEMReq", 0, diagReq))
           can_sends.append(self.packer.make_can_msg("diagPSCMReq", 0, diagReq))

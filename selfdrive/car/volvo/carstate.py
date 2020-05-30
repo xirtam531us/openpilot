@@ -186,13 +186,13 @@ class CarState(CarStateBase):
     self.PSCMInfo.byte7 = int(cp.vl['PSCM1']['byte7']) 
     self.PSCMInfo.LKATorque = int(cp.vl['PSCM1']['LKATorque']) 
     self.PSCMInfo.LKAActive = int(cp.vl['PSCM1']['LKAActive']) 
-    self.PSCMInfo.SteeringAngleServo = int(cp.vl['PSCM1']['SteeringAngleServo']) 
+    self.PSCMInfo.SteeringAngleServo = float(cp.vl['PSCM1']['SteeringAngleServo']) 
 
     # Platform specific  
     if self.CP.carFingerprint in PLATFORM.C1:
       self.PSCMInfo.byte3 = int(cp.vl['PSCM1']['byte3']) 
     elif self.CP.carFingerprint in PLATFORM.EUCD:
-      self.PSCMInfo.SteeringWheelRateOfChange = int(cp.vl['PSCM1']['SteeringWheelRateOfChange'])
+      self.PSCMInfo.SteeringWheelRateOfChange = float(cp.vl['PSCM1']['SteeringWheelRateOfChange'])
 
     # FSMInfo
     if self.CP.carFingerprint in PLATFORM.C1:
@@ -203,8 +203,8 @@ class CarState(CarStateBase):
       self.FSMInfo.SET_X_02 = int(cp_cam.vl['FSM1']['SET_X_02']) 
       self.FSMInfo.SET_X_25 = int(cp_cam.vl['FSM1']['SET_X_25']) 
       self.FSMInfo.TrqLim = int(cp_cam.vl['FSM1']['TrqLim']) 
-      self.FSMInfo.LKAAngleReq = int(cp_cam.vl['FSM1']['LKAAngleReq']) 
-      self.FSMInfo.Checksum = int(cp_cam.vl['FSM1']['Checksum']) 
+      self.FSMInfo.LKAAngleReq = float(cp_cam.vl['FSM1']['LKAAngleReq']) 
+      self.FSMInfo.Checksum = float(cp_cam.vl['FSM1']['Checksum']) 
       self.FSMInfo.LKASteerDirection = int(cp_cam.vl['FSM1']['LKASteerDirection'])
     
     elif self.CP.carFingerprint in PLATFORM.EUCD:
@@ -217,14 +217,16 @@ class CarState(CarStateBase):
     # If N_ZERO_TRQ 0 torque samples in a row is detected,
     # set steerUnavailable. Same logic in carcontroller to
     # decide when to start to recover steering.
-    if ret.cruiseState.enabled and ret.vEgo > self.CP.minSteerSpeed:
-      self.trq_fifo.append(self.PSCMInfo.LKATorque)
-      ret.steerWarning = True if (self.trq_fifo.count(0) >= CCP.N_ZERO_TRQ*2) else False  # *2, runs at 100hz
-      if len(self.trq_fifo) > CCP.N_ZERO_TRQ*2:                                           # vs 50hz in CarController
-        self.trq_fifo.popleft()
-    else:
-      self.trq_fifo.clear()
-      ret.steerWarning = False
+    # TODO: Add EUCD
+    if self.CP.carFingerprint in PLATFORM.C1:
+      if ret.cruiseState.enabled and ret.vEgo > self.CP.minSteerSpeed:
+        self.trq_fifo.append(self.PSCMInfo.LKATorque)
+        ret.steerWarning = True if (self.trq_fifo.count(0) >= CCP.N_ZERO_TRQ*2) else False  # *2, runs at 100hz
+        if len(self.trq_fifo) > CCP.N_ZERO_TRQ*2:                                           # vs 50hz in CarController
+          self.trq_fifo.popleft()
+      else:
+        self.trq_fifo.clear()
+        ret.steerWarning = False
 
     return ret
 
