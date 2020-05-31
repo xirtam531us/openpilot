@@ -195,19 +195,26 @@ class CarState(CarStateBase):
       self.PSCMInfo.SteeringWheelRateOfChange = float(cp.vl['PSCM1']['SteeringWheelRateOfChange'])
 
     # FSMInfo
+    # Common both platforms
+        
     if self.CP.carFingerprint in PLATFORM.C1:
       # TODO Why use these? In future shold be ok to delete.
+      self.FSMInfo.TrqLim = int(cp_cam.vl['FSM1']['TrqLim']) 
+      self.FSMInfo.LKAAngleReq = float(cp_cam.vl['FSM1']['LKAAngleReq']) 
+      self.FSMInfo.Checksum = int(cp_cam.vl['FSM1']['Checksum']) 
+      self.FSMInfo.LKASteerDirection = int(cp_cam.vl['FSM1']['LKASteerDirection'])
       self.FSMInfo.SET_X_E3 = int(cp_cam.vl['FSM1']['SET_X_E3']) 
       self.FSMInfo.SET_X_B4 = int(cp_cam.vl['FSM1']['SET_X_B4']) 
       self.FSMInfo.SET_X_08 = int(cp_cam.vl['FSM1']['SET_X_08']) 
       self.FSMInfo.SET_X_02 = int(cp_cam.vl['FSM1']['SET_X_02']) 
       self.FSMInfo.SET_X_25 = int(cp_cam.vl['FSM1']['SET_X_25']) 
-      self.FSMInfo.TrqLim = int(cp_cam.vl['FSM1']['TrqLim']) 
-      self.FSMInfo.LKAAngleReq = float(cp_cam.vl['FSM1']['LKAAngleReq']) 
-      self.FSMInfo.Checksum = float(cp_cam.vl['FSM1']['Checksum']) 
-      self.FSMInfo.LKASteerDirection = int(cp_cam.vl['FSM1']['LKASteerDirection'])
     
     elif self.CP.carFingerprint in PLATFORM.EUCD:
+      self.FSMInfo.TrqLim = int(cp_cam.vl['FSM2']['TrqLim']) 
+      self.FSMInfo.LKAAngleReq = float(cp_cam.vl['FSM2']['LKAAngleReq']) 
+      self.FSMInfo.Checksum = int(cp_cam.vl['FSM2']['Checksum']) 
+      self.FSMInfo.LKASteerDirection = int(cp_cam.vl['FSM2']['LKASteerDirection'])
+      # Must use until understand the messaging scheme more...
       self.FSMInfo.SET_X_22 = int(cp_cam.vl['FSM2']['SET_X_22']) 
       self.FSMInfo.SET_X_02 = int(cp_cam.vl['FSM2']['SET_X_02']) 
       self.FSMInfo.SET_X_A4 = int(cp_cam.vl['FSM2']['SET_X_A4']) 

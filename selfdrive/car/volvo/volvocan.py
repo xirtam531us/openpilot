@@ -37,7 +37,7 @@ def manipulateServo(packer, car_fingerprint, CS):
 
 
 def create_chksum(dat, car_fingerprint):
-  # Input: dat byte array
+  # Input: dat byte array, and fingerprint
   # Steering direction = 0 -> 3
   # TrqLim = 0 -> 255
   # Steering angle request = -360 -> 360
@@ -61,11 +61,20 @@ def create_chksum(dat, car_fingerprint):
 def create_steering_control(packer, frame, car_fingerprint, SteerCommand, FSMInfo):  
  
   # Set common parameters
-  values = {
-    "LKAAngleReq": SteerCommand.angle_request,
-    "LKASteerDirection": SteerCommand.steer_direction,
-    "TrqLim": SteerCommand.trqlim,
-  }
+  # TODO: DEBUG, REMOVE WHEN DONE
+  if car_fingerprint in PLATFORM.C1:
+    values = {
+      "LKAAngleReq": SteerCommand.angle_request,
+      "LKASteerDirection": SteerCommand.steer_direction,
+      "TrqLim": SteerCommand.trqlim,
+    }
+  elif car_fingerprint in PLATFORM.EUCD:
+    values = {
+      "LKAAngleReq": FSMInfo.LKAAngleReq,
+      "LKASteerDirection": FSMInfo.LKASteerDirection,
+      "TrqLim": FSMInfo.TrqLim,
+      "Checksum": FSMInfo.Checksum,      
+    }
   
   # Set car specific parameters
   if car_fingerprint in PLATFORM.C1:
@@ -93,7 +102,9 @@ def create_steering_control(packer, frame, car_fingerprint, SteerCommand, FSMInf
   elif car_fingerprint in PLATFORM.EUCD:
     dat = packer.make_can_msg("FSM2", 0, values)[2]
 
-  values["Checksum"] = create_chksum(dat, car_fingerprint)
+  # TODO: DEBUG REMOVE WHEN DONE
+  if car_fingerprint in PLATFORM.C1:
+    values["Checksum"] = create_chksum(dat, car_fingerprint)
 
   if car_fingerprint in PLATFORM.C1:
     return packer.make_can_msg("FSM1", 0, values)
