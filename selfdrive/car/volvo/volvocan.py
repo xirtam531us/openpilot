@@ -62,13 +62,13 @@ def create_steering_control(packer, frame, car_fingerprint, SteerCommand, FSMInf
  
   # Set common parameters
   # TODO: DEBUG, REMOVE WHEN DONE
-  if car_fingerprint in PLATFORM.C1:
+  if car_fingerprint in PLATFORM.C1 or True:
     values = {
       "LKAAngleReq": SteerCommand.angle_request,
       "LKASteerDirection": SteerCommand.steer_direction,
       "TrqLim": SteerCommand.trqlim,
     }
-  elif car_fingerprint in PLATFORM.EUCD:
+  elif car_fingerprint in PLATFORM.EUCD and False:
     values = {
       "LKAAngleReq": FSMInfo.LKAAngleReq,
       "LKASteerDirection": FSMInfo.LKASteerDirection,
@@ -87,10 +87,14 @@ def create_steering_control(packer, frame, car_fingerprint, SteerCommand, FSMInf
     }
   elif car_fingerprint in PLATFORM.EUCD:
     values_static = {
-      "SET_X_22": FSMInfo.SET_X_22,
-      "SET_X_02": FSMInfo.SET_X_02,
-      "SET_X_10": FSMInfo.SET_X_10,
-      "SET_X_A4": FSMInfo.SET_X_A4,
+      "SET_X_22": 0x25,
+      "SET_X_02": 0,
+      "SET_X_10": 0x10,
+      "SET_X_A4": 0xa7,
+      #"SET_X_22": FSMInfo.SET_X_22,
+      #"SET_X_02": FSMInfo.SET_X_02,
+      #"SET_X_10": FSMInfo.SET_X_10,
+      #"SET_X_A4": FSMInfo.SET_X_A4,
     }
 
   # Combine common and static parameters
@@ -102,9 +106,7 @@ def create_steering_control(packer, frame, car_fingerprint, SteerCommand, FSMInf
   elif car_fingerprint in PLATFORM.EUCD:
     dat = packer.make_can_msg("FSM2", 0, values)[2]
 
-  # TODO: DEBUG REMOVE WHEN DONE
-  if car_fingerprint in PLATFORM.C1:
-    values["Checksum"] = create_chksum(dat, car_fingerprint)
+  values["Checksum"] = create_chksum(dat, car_fingerprint)
 
   if car_fingerprint in PLATFORM.C1:
     return packer.make_can_msg("FSM1", 0, values)

@@ -150,9 +150,7 @@ class CarController():
     # run at 50hz
     if (frame % 2 == 0):
       
-      if enabled                                  \
-          and CS.out.vEgo > self.CP.minSteerSpeed \
-          and self.CP.carFingerprint == PLATFORM.C1:
+      if enabled and CS.out.vEgo > self.CP.minSteerSpeed:
         current_steer_angle = CS.out.steeringAngle
         self.SteerCommand.angle_request = actuators.steerAngle # Desired value from pathplanner
         
@@ -165,14 +163,15 @@ class CarController():
         self.SteerCommand.angle_request = clip(self.SteerCommand.angle_request, self.angle_request_prev - angle_rate_lim, self.angle_request_prev + angle_rate_lim)
 
         # Create trqlim from angle request (before constraints)
-        # self.SteerCommand.trqlim = 0
         #self.SteerCommand.trqlim = clip(self.SteerCommand.angle_request*2, -127, 127)
-        self.SteerCommand.trqlim = -127 if current_steer_angle > self.SteerCommand.angle_request else 127
-
-        # MIGHT be needed for EUCD
-        #self.SteerCommand.steer_direction = CCP.STEER_RIGHT if current_steer_angle > self.SteerCommand.angle_request else CCP.STEER_LEFT
-        #self.SteerCommand.steer_direction = self.dir_change(self.SteerCommand.steer_direction, current_steer_angle-self.SteerCommand.angle_request) # Filter the direction change 
-        self.SteerCommand.steer_direction = CCP.STEER
+        if self.CP.carFingerprint in PLATFORM.C1:
+          self.SteerCommand.trqlim = -127 if current_steer_angle > self.SteerCommand.angle_request else 127
+          self.SteerCommand.steer_direction = CCP.STEER
+        else:
+          self.SteerCommand.trqlim = 0
+          # MIGHT be needed for EUCD
+          self.SteerCommand.steer_direction = CCP.STEER_RIGHT if current_steer_angle > self.SteerCommand.angle_request else CCP.STEER_LEFT
+          self.SteerCommand.steer_direction = self.dir_change(self.SteerCommand.steer_direction, current_steer_angle-self.SteerCommand.angle_request) # Filter the direction change 
 
         # get maximum allowed steering angle request
         #max_right, max_left, max_delta_right, max_delta_left = self.max_angle_req(current_steer_angle, self.angle_request_prev, CCP)
