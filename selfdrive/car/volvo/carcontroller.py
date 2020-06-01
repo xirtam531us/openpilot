@@ -149,6 +149,7 @@ class CarController():
 
     # run at 50hz
     if (frame % 2 == 0):
+      fingerprint = self.CP.carFingerprint
       
       if enabled and CS.out.vEgo > self.CP.minSteerSpeed:
         current_steer_angle = CS.out.steeringAngle
@@ -164,15 +165,17 @@ class CarController():
 
         # Create trqlim from angle request (before constraints)
         #self.SteerCommand.trqlim = clip(self.SteerCommand.angle_request*2, -127, 127)
-        if self.CP.carFingerprint in PLATFORM.C1:
+        if fingerprint in PLATFORM.C1:
           self.SteerCommand.trqlim = -127 if current_steer_angle > self.SteerCommand.angle_request else 127
-        else:
+          self.SteerCommand.steer_direction = CCP.STEER
+        elif fingerprint in PLATFORM.EUCD:
           self.SteerCommand.trqlim = 0
           # MIGHT be needed for EUCD
           #self.SteerCommand.steer_direction = CCP.STEER_RIGHT if current_steer_angle > self.SteerCommand.angle_request else CCP.STEER_LEFT
           #self.SteerCommand.steer_direction = self.dir_change(self.SteerCommand.steer_direction, current_steer_angle-self.SteerCommand.angle_request) # Filter the direction change 
-        
+          
         self.SteerCommand.steer_direction = CCP.STEER
+        
 
         # get maximum allowed steering angle request
         #max_right, max_left, max_delta_right, max_delta_left = self.max_angle_req(current_steer_angle, self.angle_request_prev, CCP)
@@ -184,14 +187,16 @@ class CarController():
 
       else:
         self.SteerCommand.steer_direction = CCP.STEER_NO
-        self.SteerCommand.angle_request = clip(CS.out.steeringAngle, -359.95, 359.90)  # Cap values at max min values (Cap 2 steps from max min). Max=359.99445, Min=-360.0384 
-        # set trqlim field to fix value
         self.SteerCommand.trqlim = 0
+        if fingerprint in PLATFORM.C1:
+          self.SteerCommand.angle_request = clip(CS.out.steeringAngle, -359.95, 359.90)  # Cap values at max min values (Cap 2 steps from max min). Max=359.99445, Min=-360.0384 
+        else:
+          self.SteerCommand.angle_request = 0
 
       
       # Count no of consequtive samples of zero torque by lka.
       # Try to recover, blocking steering request for 2 seconds.
-      if self.CP.carFingerprint in PLATFORM.C1:
+      if fingerprint in PLATFORM.C1:
         if enabled and CS.out.vEgo > self.CP.minSteerSpeed:
           self.trq_fifo.append(CS.PSCMInfo.LKATorque)
           if len(self.trq_fifo) > CCP.N_ZERO_TRQ:

@@ -30,7 +30,7 @@ def manipulateServo(packer, car_fingerprint, CS):
     msg["LKAActive"] = CS.PSCMInfo.LKAActive & 0xFD
     msg["byte3"] = CS.PSCMInfo.byte3
   elif car_fingerprint in PLATFORM.EUCD:
-    msg["LKAActive"] = CS.PSCMInfo.LKAActive
+    msg["LKAActive"] = CS.PSCMInfo.LKAActive & 0xF5   # Filter out bit 1 and 3
     msg["SteeringWheelRateOfChange"] = CS.PSCMInfo.SteeringWheelRateOfChange
 
   return packer.make_can_msg("PSCM1", 2, msg)
@@ -61,20 +61,11 @@ def create_chksum(dat, car_fingerprint):
 def create_steering_control(packer, frame, car_fingerprint, SteerCommand, FSMInfo):  
  
   # Set common parameters
-  # TODO: DEBUG, REMOVE WHEN DONE
-  if car_fingerprint in PLATFORM.C1 or True:
-    values = {
-      "LKAAngleReq": SteerCommand.angle_request,
-      "LKASteerDirection": SteerCommand.steer_direction,
-      "TrqLim": SteerCommand.trqlim,
-    }
-  elif car_fingerprint in PLATFORM.EUCD and False:
-    values = {
-      "LKAAngleReq": FSMInfo.LKAAngleReq,
-      "LKASteerDirection": FSMInfo.LKASteerDirection,
-      "TrqLim": FSMInfo.TrqLim,
-      "Checksum": FSMInfo.Checksum,      
-    }
+  values = {
+    "LKAAngleReq": SteerCommand.angle_request,
+    "LKASteerDirection": SteerCommand.steer_direction,
+    "TrqLim": SteerCommand.trqlim,
+  }
   
   # Set car specific parameters
   if car_fingerprint in PLATFORM.C1:
@@ -87,15 +78,18 @@ def create_steering_control(packer, frame, car_fingerprint, SteerCommand, FSMInf
     }
   elif car_fingerprint in PLATFORM.EUCD:
     values_static = {
-      "SET_X_22": 0x25,
-      "SET_X_02": 0,
-      "SET_X_10": 0x10,
-      "SET_X_A4": 0xa7,
+      "SET_X_22": 0x25, # Test these values: 0x24, 0x22
+      "SET_X_02": 0,    # Test 0x00, 0x02
+      "SET_X_10": 0x10, # Test 0x10, 0x1c, 0x18, 0x00
+      "SET_X_A4": 0xa7, # Test 0xa4, 0xa6, 0xa5, 0xe5, 0xe7
       #"SET_X_22": FSMInfo.SET_X_22,
       #"SET_X_02": FSMInfo.SET_X_02,
       #"SET_X_10": FSMInfo.SET_X_10,
       #"SET_X_A4": FSMInfo.SET_X_A4,
     }
+    # Which numbers stops lka? X_22? X_02? X_10? X_A4?
+    # From working test to change one field at a time. When does it stop to work?
+    # Do any of the changes make the CCP.STEER command work?
 
   # Combine common and static parameters
   values.update(values_static)
