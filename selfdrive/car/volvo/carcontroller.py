@@ -166,12 +166,13 @@ class CarController():
         #self.SteerCommand.trqlim = clip(self.SteerCommand.angle_request*2, -127, 127)
         if self.CP.carFingerprint in PLATFORM.C1:
           self.SteerCommand.trqlim = -127 if current_steer_angle > self.SteerCommand.angle_request else 127
-          self.SteerCommand.steer_direction = CCP.STEER
         else:
           self.SteerCommand.trqlim = 0
           # MIGHT be needed for EUCD
-          self.SteerCommand.steer_direction = CCP.STEER_RIGHT if current_steer_angle > self.SteerCommand.angle_request else CCP.STEER_LEFT
-          self.SteerCommand.steer_direction = self.dir_change(self.SteerCommand.steer_direction, current_steer_angle-self.SteerCommand.angle_request) # Filter the direction change 
+          #self.SteerCommand.steer_direction = CCP.STEER_RIGHT if current_steer_angle > self.SteerCommand.angle_request else CCP.STEER_LEFT
+          #self.SteerCommand.steer_direction = self.dir_change(self.SteerCommand.steer_direction, current_steer_angle-self.SteerCommand.angle_request) # Filter the direction change 
+        
+        self.SteerCommand.steer_direction = CCP.STEER
 
         # get maximum allowed steering angle request
         #max_right, max_left, max_delta_right, max_delta_left = self.max_angle_req(current_steer_angle, self.angle_request_prev, CCP)
