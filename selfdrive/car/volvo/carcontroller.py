@@ -22,7 +22,7 @@ class CarController():
     # Direction change statemachine
     self.UNBLOCKED = 0
     self.BLOCKED = 1
-    self.BLOCK_LEN = 4  # Block steer direction change for x samples
+    self.BLOCK_LEN = CCP.BLOCK_LEN  # Block steer direction change for x samples
 
     self.dir_state = 0
     self.block_steering = 0
@@ -218,7 +218,7 @@ class CarController():
       # update stored values
       self.acc_enabled_prev = enabled
       self.angle_request_prev = self.SteerCommand.angle_request
-      if self.SteerCommand.steer_direction == CCP.STEER_RIGHT or self.SteerCommand.steer_direction == CCP.STEER_LEFT:
+      if self.SteerCommand.steer_direction == CCP.STEER_RIGHT or self.SteerCommand.steer_direction == CCP.STEER_LEFT: # TODO: Move this inside dir_change, think it should work?
         self.des_steer_direction_prev = self.SteerCommand.steer_direction  # Used for dir_change function
       
       # Manipulate data from servo to FSM

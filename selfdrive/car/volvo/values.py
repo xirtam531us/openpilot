@@ -53,6 +53,10 @@ class CarControllerParams():
   # number of 0 torque samples in a row before trying to restore steering.
   N_ZERO_TRQ = 10
 
+  # EUCD
+  # When changing steer direction steering request need to be blocked.
+  # This calibration sets the number of samples to block it and no steering instead.
+  BLOCK_LEN = 8
   # don't change steer direction inside deadzone, 
   # might not be needed in future after discovering STEER command.
   DEADZONE = 0.1
