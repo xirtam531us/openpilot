@@ -27,7 +27,7 @@ segments = [
 ]
 
 # ford doesn't need to be tested until a full port is done
-excluded_interfaces = ["mock", "ford"]
+excluded_interfaces = ["mock", "ford", "volvo"]
 
 BASE_URL = "https://commadataci.blob.core.windows.net/openpilotci/"
 
