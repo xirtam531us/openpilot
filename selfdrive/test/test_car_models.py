@@ -392,6 +392,8 @@ non_tested_cars = [
   TOYOTA.CHRH,
   TOYOTA.HIGHLANDERH,
   TOYOTA.HIGHLANDERH_TSS2,
+  VOLVO.V40,
+  VOLVO.V60,
 ]
 
 if __name__ == "__main__":
