@@ -21,9 +21,10 @@ segments = [
   #("CHRYSLER", "b6e1317e1bfbefa6|2020-03-04--13-11-40"),   # CHRYSLER.JEEP_CHEROKEE
   ("SUBARU", "7873afaf022d36e2|2019-07-03--18-46-44--0"),     # SUBARU.IMPREZA
   ("VOLKSWAGEN", "76b83eb0245de90e|2020-03-05--19-16-05--3"), # VW.GOLF
-
+  
   # Enable when port is tested and dascamOnly is no longer set
   ("NISSAN", "fbbfa6af821552b9|2020-03-03--08-09-43--0"),     # NISSAN.XTRAIL
+  ("VOLVO", "f9801d8be3dcbab5|2020-06-06--16-44-41--2"),
 ]
 
 # ford doesn't need to be tested until a full port is done
