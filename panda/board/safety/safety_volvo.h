@@ -221,42 +221,42 @@ const int ALLOWED_MSG_EUCD_LEN = sizeof(ALLOWED_MSG_EUCD) / sizeof(ALLOWED_MSG_E
 
 // TX checks
 // platform c1
-const AddrBus VOLVO_C1_TX_MSGS[] = { {MSG_FSM0_VOLVO_C1, 0}, {MSG_FSM1_VOLVO_C1, 0}, 
-                                     {MSG_FSM2_VOLVO_C1, 0}, {MSG_FSM3_VOLVO_C1, 0}, 
-                                     {MSG_FSM4_VOLVO_C1, 0},
-                                     {MSG_BTNS_VOLVO_C1, 0},   
-                                     {MSG_PSCM0_VOLVO_C1, 2}, {MSG_PSCM1_VOLVO_C1, 2},  
-                                     {MSG_DIAG_FSM, 2}, {MSG_DIAG_PSCM, 0},
-                                     {MSG_DIAG_CEM, 0}, {MSG_DIAG_CVM, 0}, 
-                                     {MSG_DIAG_BROADCAST, 0}, {MSG_DIAG_BROADCAST, 2}, 
+const CanMsg VOLVO_C1_TX_MSGS[] = { {MSG_FSM0_VOLVO_C1, 0, 8}, {MSG_FSM1_VOLVO_C1, 0, 8}, 
+                                     {MSG_FSM2_VOLVO_C1, 0, 8}, {MSG_FSM3_VOLVO_C1, 0, 8}, 
+                                     {MSG_FSM4_VOLVO_C1, 0, 8},
+                                     {MSG_BTNS_VOLVO_C1, 0, 8},   
+                                     {MSG_PSCM0_VOLVO_C1, 2, 8}, {MSG_PSCM1_VOLVO_C1, 2, 8},  
+                                     {MSG_DIAG_FSM, 2, 8}, {MSG_DIAG_PSCM, 0, 8},
+                                     {MSG_DIAG_CEM, 0, 8}, {MSG_DIAG_CVM, 0, 8}, 
+                                     {MSG_DIAG_BROADCAST, 0, 8}, {MSG_DIAG_BROADCAST, 2, 8}, 
                                     };
 
 const int VOLVO_C1_TX_MSGS_LEN = sizeof(VOLVO_C1_TX_MSGS) / sizeof(VOLVO_C1_TX_MSGS[0]);
 // platform eucd
-const AddrBus VOLVO_EUCD_TX_MSGS[] = { {MSG_FSM0_VOLVO_V60, 0}, {MSG_FSM1_VOLVO_V60, 0}, 
-                                       {MSG_FSM2_VOLVO_V60, 0}, {MSG_FSM3_VOLVO_V60, 0}, 
-                                       {MSG_FSM4_VOLVO_V60, 0}, {MSG_FSM5_VOLVO_V60, 0},
-                                       {MSG_PSCM1_VOLVO_V60, 2}, 
-                                       {MSG_BTNS_VOLVO_V60, 0},
-                                       {MSG_DIAG_FSM, 2}, {MSG_DIAG_PSCM, 0},
-                                       {MSG_DIAG_CEM, 0}, {MSG_DIAG_CVM, 0},
-                                       {MSG_DIAG_BROADCAST, 0}, {MSG_DIAG_BROADCAST, 2},
+const CanMsg VOLVO_EUCD_TX_MSGS[] = { {MSG_FSM0_VOLVO_V60, 0, 8}, {MSG_FSM1_VOLVO_V60, 0, 8}, 
+                                       {MSG_FSM2_VOLVO_V60, 0, 8}, {MSG_FSM3_VOLVO_V60, 0, 8}, 
+                                       {MSG_FSM4_VOLVO_V60, 0, 8}, {MSG_FSM5_VOLVO_V60, 0, 8},
+                                       {MSG_PSCM1_VOLVO_V60, 2, 8}, 
+                                       {MSG_BTNS_VOLVO_V60, 0, 8},
+                                       {MSG_DIAG_FSM, 2, 8}, {MSG_DIAG_PSCM, 0, 8},
+                                       {MSG_DIAG_CEM, 0, 8}, {MSG_DIAG_CVM, 0, 8},
+                                       {MSG_DIAG_BROADCAST, 0, 8}, {MSG_DIAG_BROADCAST, 2, 8},
                                     };
 const int VOLVO_EUCD_TX_MSGS_LEN = sizeof(VOLVO_EUCD_TX_MSGS) / sizeof(VOLVO_EUCD_TX_MSGS[0]);
 
 // expected_timestep in microseconds between messages.
 AddrCheckStruct volvo_c1_rx_checks[] = {
-  {.addr = {MSG_FSM0_VOLVO_C1},       .bus = 2, .check_checksum = false, .expected_timestep = 10000U},
-  {.addr = {MSG_FSM1_VOLVO_C1},       .bus = 2, .check_checksum = false, .expected_timestep = 20000U},
-  {.addr = {MSG_PSCM0_VOLVO_C1},      .bus = 0, .check_checksum = false, .expected_timestep = 20000U},
-  {.addr = {MSG_PSCM1_VOLVO_C1},      .bus = 0, .check_checksum = false, .expected_timestep = 20000U},
-  {.addr = {MSG_ACC_PEDAL_VOLVO_C1},  .bus = 0, .check_checksum = false, .expected_timestep = 20000U},
+  {.msg = {{MSG_FSM0_VOLVO_C1,      2, 8,    .check_checksum = false, .expected_timestep = 10000U}}},
+  {.msg = {{MSG_FSM1_VOLVO_C1,      2, 8,  .check_checksum = false, .expected_timestep = 20000U}}},
+  {.msg = {{MSG_PSCM0_VOLVO_C1,     0, 2,  .check_checksum = false, .expected_timestep = 20000U}}},
+  {.msg = {{MSG_PSCM1_VOLVO_C1,     0, 2,  .check_checksum = false, .expected_timestep = 20000U}}},
+  {.msg = {{MSG_ACC_PEDAL_VOLVO_C1, 0, 2, .check_checksum = false, .expected_timestep = 20000U}}},
 };
 
 AddrCheckStruct volvo_eucd_rx_checks[] = {
-  {.addr = {MSG_PSCM1_VOLVO_V60},      .bus = 0, .check_checksum = false, .expected_timestep = 20000U},
-  {.addr = {MSG_FSM0_VOLVO_V60},       .bus = 2, .check_checksum = false, .expected_timestep = 10000U},
-  {.addr = {MSG_ACC_PEDAL_VOLVO_V60},  .bus = 0, .check_checksum = false, .expected_timestep = 10000U},
+  {.msg = {{MSG_PSCM1_VOLVO_V60,      0, 8, .check_checksum = false, .expected_timestep = 20000U}}},
+  {.msg = {{MSG_FSM0_VOLVO_V60,       2, 8, .check_checksum = false, .expected_timestep = 10000U}}},
+  {.msg = {{MSG_ACC_PEDAL_VOLVO_V60,  0, 8, .check_checksum = false, .expected_timestep = 10000U}}},
 };
 
 const int VOLVO_C1_RX_CHECKS_LEN = sizeof(volvo_c1_rx_checks) / sizeof(volvo_c1_rx_checks[0]);
@@ -440,11 +440,14 @@ static int volvo_eucd_rx_hook(CAN_FIFOMailBox_TypeDef *to_push) {
 static int volvo_c1_tx_hook(CAN_FIFOMailBox_TypeDef *to_send) {
   
   int tx = 1;
-  int bus = GET_BUS(to_send);
   int addr = GET_ADDR(to_send);
   bool violation = 0;
 
-  if ( !msg_allowed(addr, bus, VOLVO_C1_TX_MSGS, VOLVO_C1_TX_MSGS_LEN) || relay_malfunction ) {
+  if ( !msg_allowed(to_send, VOLVO_C1_TX_MSGS, VOLVO_C1_TX_MSGS_LEN) ) {
+    tx = 0;
+  }
+
+  if (relay_malfunction) {
     tx = 0;
   }
 
@@ -507,11 +510,13 @@ static int volvo_c1_tx_hook(CAN_FIFOMailBox_TypeDef *to_send) {
 
 static int volvo_eucd_tx_hook(CAN_FIFOMailBox_TypeDef *to_send) {
   
-  int bus = GET_BUS(to_send);
-  int addr = GET_ADDR(to_send);
   int tx = 1;
 
-  if ( !msg_allowed(addr, bus, VOLVO_EUCD_TX_MSGS, VOLVO_EUCD_TX_MSGS_LEN) || relay_malfunction ) {
+  if ( !msg_allowed(to_send, VOLVO_EUCD_TX_MSGS, VOLVO_EUCD_TX_MSGS_LEN) ) {
+    tx = 0;
+  }
+  
+  if (relay_malfunction) {
     tx = 0;
   }
   
