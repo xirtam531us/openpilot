@@ -158,13 +158,13 @@ def check_car_battery_voltage(should_start, health, charging_disabled, msg):
   #   - onroad isn't started
   #print(health)
 
-  if charging_disabled and (health is None or health.health.voltage > (500)) and msg.thermal.batteryPercent < battChargeMin):
+  if charging_disabled and (health is None or health.health.voltage > 500) and msg.thermal.batteryPercent < battChargeMin:
     charging_disabled = False
     os.system('echo "1" > /sys/class/power_supply/battery/charging_enabled')
   elif not charging_disabled and (msg.thermal.batteryPercent > battChargeMax or (health is not None and health.health.voltage < 0 and not should_start)):
     charging_disabled = True
     os.system('echo "0" > /sys/class/power_supply/battery/charging_enabled')
-  elif msg.thermal.batteryCurrent < 0 and msg.thermal.batteryPercent > battChargeMax):
+  elif msg.thermal.batteryCurrent < 0 and msg.thermal.batteryPercent > battChargeMax:
     charging_disabled = True
     os.system('echo "0" > /sys/class/power_supply/battery/charging_enabled')
 
