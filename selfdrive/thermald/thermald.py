@@ -158,7 +158,7 @@ def check_car_battery_voltage(should_start, health, charging_disabled, msg):
   #   - onroad isn't started
   #print(health)
 
-  if charging_disabled and (health is None or health.health.voltage > 500) and msg.thermal.batteryPercent < battChargeMin:
+  if charging_disabled and msg.thermal.batteryPercent < battChargeMin:
     charging_disabled = False
     os.system('echo "1" > /sys/class/power_supply/battery/charging_enabled')
   elif not charging_disabled and (msg.thermal.batteryPercent > battChargeMax or (health is not None and health.health.voltage < 0 and not should_start)):
@@ -418,7 +418,7 @@ def thermald_thread():
         os.system('LD_LIBRARY_PATH="" svc power shutdown')
     
     # Battery longevity - credit to kegman fork. https://github.com/kegman/openpilot/commit/d762cb450ddf09cdb8a01672ad329c27538e717d
-    charging_disabled = check_car_battery_voltage(should_start, health, charging_disabled, msg)
+    #charging_disabled = check_car_battery_voltage(should_start, health, charging_disabled, msg)
 
     if msg.thermal.batteryCurrent > 0:
       msg.thermal.batteryStatus = "Discharging"
