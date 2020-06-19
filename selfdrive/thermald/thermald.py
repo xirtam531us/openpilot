@@ -26,13 +26,16 @@ NetworkType = log.ThermalData.NetworkType
 NetworkStrength = log.ThermalData.NetworkStrength
 CURRENT_TAU = 15.   # 15s time constant
 CPU_TEMP_TAU = 5.   # 5s time constant
-DAYS_NO_CONNECTIVITY_MAX = 7  # do not allow to engage after a week without internet
-DAYS_NO_CONNECTIVITY_PROMPT = 4  # send an offroad prompt after 4 days with no internet
+DAYS_NO_CONNECTIVITY_MAX = 360*10  # do not allow to engage after a week without internet
+DAYS_NO_CONNECTIVITY_PROMPT = 360*9  # send an offroad prompt after 4 days with no internet
 DISCONNECT_TIMEOUT = 5.  # wait 5 seconds before going offroad after disconnect so you get an alert
 
 LEON = False
 last_eon_fan_val = None
 
+# Battery longevity mod
+battChargeMax = 60
+battChargeMin = 59
 
 with open(BASEDIR + "/selfdrive/controls/lib/alerts_offroad.json") as json_file:
   OFFROAD_ALERTS = json.load(json_file)
@@ -147,10 +150,29 @@ def handle_fan_uno(max_cpu_temp, bat_temp, fan_speed, ignition):
 
   return new_speed
 
+def check_car_battery_voltage(should_start, health, charging_disabled, msg):
+
+  # charging disallowed if:
+  #   - there are health packets from panda, and;
+  #   - 12V battery voltage is too low, and;
+  #   - onroad isn't started
+  #print(health)
+
+  if charging_disabled and (health is None or health.health.voltage > (500)) and msg.thermal.batteryPercent < battChargeMin):
+    charging_disabled = False
+    os.system('echo "1" > /sys/class/power_supply/battery/charging_enabled')
+  elif not charging_disabled and (msg.thermal.batteryPercent > battChargeMax or (health is not None and health.health.voltage < 0 and not should_start)):
+    charging_disabled = True
+    os.system('echo "0" > /sys/class/power_supply/battery/charging_enabled')
+  elif msg.thermal.batteryCurrent < 0 and msg.thermal.batteryPercent > battChargeMax):
+    charging_disabled = True
+    os.system('echo "0" > /sys/class/power_supply/battery/charging_enabled')
+
+  return charging_disabled
 
 def thermald_thread():
   # prevent LEECO from undervoltage
-  BATT_PERC_OFF = 10 if LEON else 3
+  BATT_PERC_OFF = 30 if LEON else 3
 
   health_timeout = int(1000 * 2.5 * DT_TRML)  # 2.5x the expected health frequency
 
@@ -183,6 +205,7 @@ def thermald_thread():
   should_start_prev = False
   handle_fan = None
   is_uno = False
+  charging_disabled = False
 
   params = Params()
   pm = PowerMonitoring()
@@ -393,7 +416,17 @@ def thermald_thread():
       if msg.thermal.batteryPercent < BATT_PERC_OFF and msg.thermal.batteryStatus == "Discharging" and \
          started_seen and (sec_since_boot() - off_ts) > 60:
         os.system('LD_LIBRARY_PATH="" svc power shutdown')
+    
+    # Battery longevity - credit to kegman fork. https://github.com/kegman/openpilot/commit/d762cb450ddf09cdb8a01672ad329c27538e717d
+    charging_disabled = check_car_battery_voltage(should_start, health, charging_disabled, msg)
 
+    if msg.thermal.batteryCurrent > 0:
+      msg.thermal.batteryStatus = "Discharging"
+    else:
+      msg.thermal.batteryStatus = "Charging"
+
+
+    msg.thermal.chargingDisabled = charging_disabled
     # Offroad power monitoring
     pm.calculate(health)
     msg.thermal.offroadPowerUsage = pm.get_power_used()
