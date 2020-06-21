@@ -460,7 +460,9 @@ def manager_thread():
 
   while 1:
     msg = messaging.recv_sock(thermal_sock, wait=True)
-
+    
+    #logger_dead = True # Turn off logging
+    
     # heavyweight batch processes are gated on favorable thermal conditions
     if msg.thermal.thermalStatus >= ThermalStatus.yellow:
       for p in green_temp_processes:
