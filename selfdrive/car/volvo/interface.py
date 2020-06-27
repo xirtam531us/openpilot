@@ -55,7 +55,7 @@ class CarInterface(CarInterfaceBase):
     ret.steerControlType = car.CarParams.SteerControlType.angle
     ret.minSteerSpeed = 1. * CV.KPH_TO_MS
     ret.steerRateCost = 1.          # Used in pathplanner for punishing? Steering derivative?
-    ret.steerActuatorDelay = 0.12   # Actuator delay from input to output.
+    ret.steerActuatorDelay = 0.24   # Actuator delay from input to output.
     
     # No PID control used. Set to a value, otherwise pid loop crashes.
     #ret.steerMaxBP = [0.] # m/s
