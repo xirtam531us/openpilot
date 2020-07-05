@@ -164,7 +164,7 @@ ThermalStatus = cereal.log.ThermalData.ThermalStatus
 # comment out anything you don't want to run
 managed_processes = {
   "thermald": "selfdrive.thermald.thermald",
-  "uploader": "selfdrive.loggerd.uploader",
+  #"uploader": "selfdrive.loggerd.uploader",
   "deleter": "selfdrive.loggerd.deleter",
   "controlsd": "selfdrive.controls.controlsd",
   "plannerd": "selfdrive.controls.plannerd",
@@ -172,7 +172,7 @@ managed_processes = {
   "dmonitoringd": "selfdrive.controls.dmonitoringd",
   "ubloxd": ("selfdrive/locationd", ["./ubloxd"]),
   "loggerd": ("selfdrive/loggerd", ["./loggerd"]),
-  "logmessaged": "selfdrive.logmessaged",
+  #"logmessaged": "selfdrive.logmessaged",
   "locationd": "selfdrive.locationd.locationd",
   "tombstoned": "selfdrive.tombstoned",
   "logcatd": ("selfdrive/logcatd", ["./logcatd"]),
@@ -193,7 +193,7 @@ managed_processes = {
 }
 
 daemon_processes = {
-  "manage_athenad": ("selfdrive.athena.manage_athenad", "AthenadPid"),
+#  "manage_athenad": ("selfdrive.athena.manage_athenad", "AthenadPid"),
 }
 
 running: Dict[str, Process] = {}
@@ -429,13 +429,13 @@ def manager_thread():
   cloudlog.info({"environ": os.environ})
 
   # save boot log
-  subprocess.call(["./loggerd", "--bootlog"], cwd=os.path.join(BASEDIR, "selfdrive/loggerd"))
+  #subprocess.call(["./loggerd", "--bootlog"], cwd=os.path.join(BASEDIR, "selfdrive/loggerd"))
 
   params = Params()
 
   # start daemon processes
-  for p in daemon_processes:
-    start_daemon_process(p)
+  #for p in daemon_processes:
+  #  start_daemon_process(p)
 
   # start persistent processes
   for p in persistent_processes:
@@ -461,7 +461,7 @@ def manager_thread():
   while 1:
     msg = messaging.recv_sock(thermal_sock, wait=True)
     
-    #logger_dead = True # Turn off logging
+    logger_dead = True # Turn off logging
     
     # heavyweight batch processes are gated on favorable thermal conditions
     if msg.thermal.thermalStatus >= ThermalStatus.yellow:
