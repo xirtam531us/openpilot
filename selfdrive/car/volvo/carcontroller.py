@@ -163,20 +163,17 @@ class CarController():
 
         self.SteerCommand.angle_request = clip(self.SteerCommand.angle_request, self.angle_request_prev - angle_rate_lim, self.angle_request_prev + angle_rate_lim)
 
-        # Create trqlim from angle request (before constraints)
-        #self.SteerCommand.trqlim = clip(self.SteerCommand.angle_request*2, -127, 127)
+        # Setting trqlim to 0 seems to work best.
+        self.SteerCommand.trqlim = 0
+
+        # Set steer_direction depending on platform
         if fingerprint in PLATFORM.C1:
-          self.SteerCommand.trqlim = -127 if current_steer_angle > self.SteerCommand.angle_request else 127
           self.SteerCommand.steer_direction = CCP.STEER
         elif fingerprint in PLATFORM.EUCD:
-          self.SteerCommand.trqlim = 0
           # MIGHT be needed for EUCD
           self.SteerCommand.steer_direction = CCP.STEER_RIGHT if current_steer_angle > self.SteerCommand.angle_request else CCP.STEER_LEFT
           self.SteerCommand.steer_direction = self.dir_change(self.SteerCommand.steer_direction, current_steer_angle-self.SteerCommand.angle_request) # Filter the direction change 
           
-       #self.SteerCommand.steer_direction = CCP.STEER
-        
-
         # get maximum allowed steering angle request
         #max_right, max_left, max_delta_right, max_delta_left = self.max_angle_req(current_steer_angle, self.angle_request_prev, CCP)
         
@@ -188,6 +185,7 @@ class CarController():
       else:
         self.SteerCommand.steer_direction = CCP.STEER_NO
         self.SteerCommand.trqlim = 0
+
         if fingerprint in PLATFORM.C1:
           self.SteerCommand.angle_request = clip(CS.out.steeringAngle, -359.95, 359.90)  # Cap values at max min values (Cap 2 steps from max min). Max=359.99445, Min=-360.0384 
         else:
