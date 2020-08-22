@@ -82,8 +82,10 @@ void *pigeon_thread(void *crap);
 
 void *safety_setter_thread(void *s) {
   // diagnostic only is the default, needed for VIN query
+  
   pthread_mutex_lock(&usb_lock);
-  libusb_control_transfer(dev_handle, 0x40, 0xdc, (uint16_t)(cereal::CarParams::SafetyModel::ELM327), 0, NULL, 0, TIMEOUT);
+  //libusb_control_transfer(dev_handle, 0x40, 0xdc, (uint16_t)(cereal::CarParams::SafetyModel::ELM327), 0, NULL, 0, TIMEOUT);
+  libusb_control_transfer(dev_handle, 0x40, 0xdc, (uint16_t)(cereal::CarParams::SafetyModel::NO_OUTPUT), 0, NULL, 0, TIMEOUT);
   pthread_mutex_unlock(&usb_lock);
 
   char *value_vin;
@@ -102,10 +104,12 @@ void *safety_setter_thread(void *s) {
   }
   LOGW("got CarVin %s", value_vin);
   free(value_vin);
-
+  
+  // Always start in fwd mode
   // VIN query done, stop listening to OBDII
   pthread_mutex_lock(&usb_lock);
   libusb_control_transfer(dev_handle, 0x40, 0xdc, (uint16_t)(cereal::CarParams::SafetyModel::NO_OUTPUT), 0, NULL, 0, TIMEOUT);
+  //libusb_control_transfer(dev_handle, 0x40, 0xdc, (uint16_t)(cereal::CarParams::SafetyModel::VOLVO_F_W_D), 0, NULL, 0, TIMEOUT);
   pthread_mutex_unlock(&usb_lock);
 
   char *value;
@@ -393,6 +397,7 @@ void can_health(PubMaster &pm) {
   if (health.safety_model == (uint8_t)(cereal::CarParams::SafetyModel::SILENT)) {
     pthread_mutex_lock(&usb_lock);
     libusb_control_transfer(dev_handle, 0x40, 0xdc, (uint16_t)(cereal::CarParams::SafetyModel::NO_OUTPUT), 0, NULL, 0, TIMEOUT);
+    //libusb_control_transfer(dev_handle, 0x40, 0xdc, (uint16_t)(cereal::CarParams::SafetyModel::VOLVO_F_W_D), 0, NULL, 0, TIMEOUT);
     pthread_mutex_unlock(&usb_lock);
   }
 
