@@ -102,7 +102,7 @@ class CarInterface(CarInterfaceBase):
         buttonEvents.append(be)
     
     # Events 
-    events = self.create_common_events(ret)
+    events = self.create_common_events(ret, gas_resume_speed=1)
     
     # Engagement and longitudinal control using stock ACC. Make sure OP is
     # disengaged if stock ACC is disengaged.

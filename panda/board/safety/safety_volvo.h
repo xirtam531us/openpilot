@@ -328,10 +328,11 @@ static int volvo_c1_rx_hook(CAN_FIFOMailBox_TypeDef *to_push) {
       }
 
       // Disengage when accelerator pedal pressed
-      if( addr == MSG_ACC_PEDAL_VOLVO_C1 ) {
+      // allow gas_press under 3.6 km/h (allow to resume acc from standstill)
+      if (addr == MSG_ACC_PEDAL_VOLVO_C1) {
         int hbyte = (GET_BYTE(to_push, 1) & 0x03) << 8;
         int acc_ped_val = hbyte + GET_BYTE(to_push, 2);
-        if( (acc_ped_val > 50) && (acc_ped_val_prev <= 50) ) {
+        if( (acc_ped_val > 50) && (acc_ped_val_prev <= 50) && (volvo_speed > 1)) {
           controls_allowed = 0;
         }
         acc_ped_val_prev = acc_ped_val;
@@ -495,7 +496,7 @@ static int volvo_c1_tx_hook(CAN_FIFOMailBox_TypeDef *to_send) {
 
   // acc button check, only allow cancel button to be sent
   if (addr == MSG_BTNS_VOLVO_C1) {
-    // Violation of any button other than cancel is pressed
+    // Violation if any button other than cancel is pressed
     violation |= ((GET_BYTE(to_send, 7) & 0xef) > 0) | (GET_BYTE(to_send, 6) > 0);
   }
 
